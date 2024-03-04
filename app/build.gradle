@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace 'com.stevdza.san.mongodemo'
-    compileSdk 33
+    namespace 'com.hocel.demodriver'
+    compileSdk 34
 
     defaultConfig {
-        applicationId "com.stevdza.san.mongodemo"
+        applicationId "com.hocel.demodriver"
         minSdk 24
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
 
@@ -30,7 +30,6 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
-        coreLibraryDesugaringEnabled true
     }
     kotlinOptions {
         jvmTarget = '11'
@@ -49,14 +48,15 @@ android {
 }
 
 dependencies {
-    implementation platform('androidx.compose:compose-bom:2023.01.00')
+    implementation platform('androidx.compose:compose-bom:2024.02.01')
 
-    implementation 'androidx.core:core-ktx:1.9.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
-    implementation 'androidx.activity:activity-compose:1.6.1'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.activity:activity-compose:1.8.2'
     implementation "androidx.compose.ui:ui"
     implementation "androidx.compose.ui:ui-tooling-preview"
-    implementation 'androidx.compose.material3:material3:1.1.0-alpha07'
+    implementation 'androidx.compose.material3:material3:1.2.0'
+    implementation 'com.google.android.gms:play-services-location:21.1.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
@@ -65,17 +65,21 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-test-manifest"
 
     // Mongo Realm
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
-    implementation 'io.realm.kotlin:library-sync:1.6.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1'
+    implementation 'io.realm.kotlin:library-sync:1.13.0'
+    implementation 'io.realm.kotlin:library-base:1.13.0'
 
-    implementation "androidx.hilt:hilt-navigation-compose:1.0.0"
+    implementation "androidx.hilt:hilt-navigation-compose:1.2.0"
 
     // Desugar JDK
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.2'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 
     // Message Bar Compose
     implementation 'com.github.stevdza-san:MessageBarCompose:1.0.5'
 
     // One-Tap Compose
     implementation 'com.github.stevdza-san:OneTapCompose:1.0.0'
+
+    implementation 'com.google.maps.android:maps-compose:4.3.3'
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
 }
