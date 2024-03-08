@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.hocel.demodriver.util.Constants.APP_ID
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.realm.kotlin.mongodb.App
 import io.realm.kotlin.mongodb.Credentials
 import io.realm.kotlin.mongodb.GoogleAuthType
@@ -11,8 +12,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class AuthenticationViewModel : ViewModel() {
+@HiltViewModel
+class AuthenticationViewModel @Inject constructor() : ViewModel() {
     var authenticated = mutableStateOf(false)
         private set
     var loadingState = mutableStateOf(false)

@@ -9,8 +9,21 @@ class Trip : RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId.invoke()
     var owner_id: String = ""
-    var name: String = ""
-    var address: String? = null
-    var timestamp: RealmInstant = RealmInstant.now()
-    var tripAccepted: Boolean = false
+    var client: String = ""
+    var pickUpAddress: String = ""
+    var dropOffAddress: String = ""
+    var createdAt: RealmInstant = RealmInstant.now()
+    private var state: String = TripStatus.Pending.status
+    var status: TripStatus
+        get() {
+            return try {
+                TripStatus.values().firstOrNull { it.status == state } ?: TripStatus.Pending
+            } catch (e: IllegalArgumentException) {
+                e.printStackTrace()
+                TripStatus.Pending
+            }
+        }
+        set(value) {
+            state = value.status
+        }
 }

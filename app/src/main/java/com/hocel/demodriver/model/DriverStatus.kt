@@ -1,7 +1,7 @@
 package com.hocel.demodriver.model
 
-enum class DriverStatus {
-    Online,
-    Offline,
-    InTrip
+enum class DriverStatus(val status: String) {
+    Online("online"),
+    Offline("offline"),
+    InTrip("in_trip")
 }

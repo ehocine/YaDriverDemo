@@ -5,11 +5,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.navigation.compose.rememberNavController
 import com.stevdza.san.demodriver.navigation.Screen
-import com.stevdza.san.demodriver.navigation.SetupNavGraph
+import com.hocel.demodriver.navigation.SetupNavGraph
+import com.hocel.demodriver.screen.auth.AuthenticationViewModel
 import com.stevdza.san.demodriver.ui.theme.MongoDemoTheme
 import com.hocel.demodriver.util.Constants.APP_ID
+import dagger.hilt.android.AndroidEntryPoint
 import io.realm.kotlin.mongodb.App
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

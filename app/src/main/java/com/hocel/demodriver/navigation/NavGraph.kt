@@ -1,9 +1,8 @@
-package com.stevdza.san.demodriver.navigation
+package com.hocel.demodriver.navigation
 
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -14,6 +13,8 @@ import com.hocel.demodriver.screen.home.HomeScreen
 import com.hocel.demodriver.screen.home.HomeViewModel
 import com.stevdzasan.messagebar.rememberMessageBarState
 import com.stevdzasan.onetap.rememberOneTapSignInState
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.stevdza.san.demodriver.navigation.Screen
 
 @Composable
 fun SetupNavGraph(
@@ -39,7 +40,7 @@ fun NavGraphBuilder.authRoute(
     navigateToHome: () -> Unit,
 ) {
     composable(route = Screen.Authentication.route) {
-        val viewModel: AuthenticationViewModel = viewModel()
+        val viewModel: AuthenticationViewModel = hiltViewModel()
         val authenticated by viewModel.authenticated
         val loadingState by viewModel.loadingState
         val oneTapState = rememberOneTapSignInState()
@@ -78,8 +79,9 @@ fun NavGraphBuilder.authRoute(
 
 fun NavGraphBuilder.homeRoute() {
     composable(route = Screen.Home.route) {
-        val viewModel: HomeViewModel = viewModel()
+        val viewModel: HomeViewModel = hiltViewModel()
         HomeScreen(
+            viewModel = viewModel,
             onSwitchClicked = viewModel::switchStatus,
             acceptTrip = viewModel::acceptTrip,
             declineTrip = viewModel::declineTrip
