@@ -93,7 +93,7 @@ object RepositoryImpl : Repository {
             .find().asFlow()
     }
 
-    override suspend fun acceptTrip(tripId: ObjectId) {
+    override suspend fun tripAction(tripId: ObjectId, action: TripStatus) {
         if (user != null) {
             realm.write {
                 val queriedTrip =
@@ -101,7 +101,8 @@ object RepositoryImpl : Repository {
                         .first()
                         .find()
                 if (queriedTrip != null) {
-                    queriedTrip.status = TripStatus.Accepted
+                    queriedTrip.status = action
+                    if (action == TripStatus.Accepted) queriedTrip.driverId = user.id
                 } else {
                     Log.d("MongoRepository", "Queried Driver does not exist.")
                 }
@@ -110,7 +111,8 @@ object RepositoryImpl : Repository {
                         .first()
                         .find()
                 if (queriedDriver != null) {
-                    queriedDriver.currentTripId = tripId.toHexString()
+                    if (action == TripStatus.Accepted) queriedDriver.currentTripId =
+                        tripId.toHexString() else Unit
                 } else {
                     Log.d("MongoRepository", "Queried Driver does not exist.")
                 }

@@ -5,6 +5,7 @@ enum class TripFlowAction {
     Pending,
     Accepted,
     GoToPickUp,
+    ArrivedToPickUp,
     StartTrip,
     EndTrip,
     CancelTrip

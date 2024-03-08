@@ -13,6 +13,7 @@ class Trip : RealmObject {
     var pickUpAddress: String = ""
     var dropOffAddress: String = ""
     var createdAt: RealmInstant = RealmInstant.now()
+    var driverId: String? = null
     private var state: String = TripStatus.Pending.status
     var status: TripStatus
         get() {

@@ -57,6 +57,7 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
+import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
 import com.stevdza.san.demodriver.ui.theme.yassirPurple
 import kotlinx.coroutines.delay
@@ -69,8 +70,7 @@ import org.mongodb.kbson.ObjectId
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSwitchClicked: (DriverStatus) -> Unit,
-    acceptTrip: (tripId: ObjectId) -> Unit,
-    declineTrip: (tripId: String) -> Unit
+    tripFlowAction: (tripId: ObjectId, action: TripStatus) -> Unit
 ) {
 
     val user by viewModel.userData.collectAsState()
@@ -82,11 +82,13 @@ fun HomeScreen(
     }
 
     val trip by viewModel.currentTrip
+    val tripAction by viewModel.tripAction
 
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(
         confirmValueChange = { false }
     )
+
     Scaffold(
         content = {
             if (showBottomSheet) {
@@ -96,32 +98,91 @@ fun HomeScreen(
                     dragHandle = null
                 ) {
                     SheetContent(
+                        canCloseSheet = tripAction == TripFlowAction.Pending || tripAction == TripFlowAction.Accepted,
                         content = {
-                            trip.let { tr ->
-                                when (tr.status) {
-                                    TripStatus.Pending -> {
-                                        TripInfoSheet(
-                                            trip = tr,
-                                            acceptTrip = {
-                                                acceptTrip(it)
-                                            }
-                                        )
-                                    }
-
-                                    TripStatus.Accepted -> {
-                                        TripFlowSheet(
-                                            trip = trip,
-                                            acceptTrip = acceptTrip
-                                        )
-                                    }
-
-                                    else -> {
-
-                                    }
+                            when (tripAction) {
+                                TripFlowAction.Pending -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "New trip request",
+                                        actionButtonText = "Accept trip",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.Accepted)
+                                        }
+                                    )
                                 }
+
+                                TripFlowAction.Accepted -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "Go to your client",
+                                        actionButtonText = "Go to pickup",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.GoToPickUp)
+                                        }
+                                    )
+                                }
+
+                                TripFlowAction.GoToPickUp -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "Going to  your client",
+                                        actionButtonText = "Arrived to pickup",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.ArrivedToPickUp)
+                                        }
+                                    )
+                                }
+
+                                TripFlowAction.ArrivedToPickUp -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "Start the trip",
+                                        actionButtonText = "Start trip",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.StartTrip)
+                                        }
+                                    )
+                                }
+
+                                TripFlowAction.StartTrip -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "You are on trip",
+                                        actionButtonText = "End trip",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.Finished)
+                                        }
+                                    )
+                                }
+
+                                TripFlowAction.EndTrip -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "Great work! Trip finished",
+                                        actionButtonText = "Close",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.Finished)
+                                        }
+                                    )
+                                }
+
+                                TripFlowAction.CancelTrip -> {
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "Want to cancel trip?",
+                                        actionButtonText = "Cancel",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.CanceledTrip)
+                                        }
+                                    )
+                                }
+
+                                else -> Unit
                             }
                         },
                         onCloseClicked = {
+                            if (tripAction == TripFlowAction.Accepted) tripFlowAction(trip._id, TripStatus.CanceledTrip)
                             scope.launch {
                                 sheetState.hide()
                                 delay(100)
@@ -232,6 +293,7 @@ private fun HomeContent(
 @Composable
 private fun SheetContent(
     content: @Composable (() -> Unit),
+    canCloseSheet: Boolean,
     onCloseClicked: () -> Unit
 ) {
     Column(
@@ -239,21 +301,27 @@ private fun SheetContent(
             .fillMaxSize()
             .padding(10.dp)
     ) {
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-            IconButton(onClick = {
-                onCloseClicked()
-            }) {
-                Icon(imageVector = Icons.Default.Close, contentDescription = "Close button")
+        if (canCloseSheet) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                IconButton(onClick = {
+                    onCloseClicked()
+                }) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close button")
+                }
             }
+        }else{
+            Spacer(modifier = Modifier.padding(10.dp))
         }
         content()
     }
 }
 
 @Composable
-fun TripInfoSheet(
+fun TripFlowSheet(
     trip: Trip,
-    acceptTrip: (tripId: ObjectId) -> Unit
+    sheetTitle: String,
+    actionButtonText: String,
+    tripAction: (tripId: ObjectId) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -261,8 +329,15 @@ fun TripInfoSheet(
             .padding(horizontal = 8.dp)
     ) {
         Text(
-            text = trip.client,
+            text = sheetTitle,
             fontSize = 20.sp,
+            color = Color.Black,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = trip.client,
+            fontSize = 19.sp,
             color = Color.Black,
             fontWeight = FontWeight.Bold
         )
@@ -329,7 +404,7 @@ fun TripInfoSheet(
         Box {
             Button(
                 onClick = {
-                    acceptTrip(trip._id)
+                    tripAction(trip._id)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -338,105 +413,7 @@ fun TripInfoSheet(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
-                    text = "Accept trip",
-                    fontSize = 16.sp,
-                    color = Color.White
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun TripFlowSheet(
-    trip: Trip,
-    acceptTrip: (tripId: ObjectId) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .wrapContentHeight()
-            .padding(horizontal = 8.dp)
-    ) {
-        Text(
-            text = trip.client,
-            fontSize = 20.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Acce Trajectory",
-            fontSize = 18.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.Medium,
-            style = typography.bodyMedium
-        )
-
-        BulletedList(
-            listOf(
-                trip.pickUpAddress,
-                trip.dropOffAddress
-            )
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Price",
-                fontSize = 18.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold,
-                style = typography.labelLarge,
-                modifier = Modifier
-                    .weight(9f)
-            )
-            Icon(
-                Icons.Outlined.Info,
-                contentDescription = "Localized description",
-                tint = yassirPurple,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = "Price + Currency",
-            fontSize = 18.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.W400,
-            style = typography.labelLarge
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.AttachMoney,
-                contentDescription = "Localized description",
-                tint = yassirPurple, modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Payment in cash",
-                fontSize = 18.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold,
-                style = typography.labelLarge
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Box {
-            Button(
-                onClick = {
-                    acceptTrip(trip._id)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors().copy(containerColor = yassirPurple),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(
-                    text =
-                    "Accept trip",
+                    text = actionButtonText,
                     fontSize = 16.sp,
                     color = Color.White
                 )

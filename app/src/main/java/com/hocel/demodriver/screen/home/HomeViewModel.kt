@@ -1,6 +1,5 @@
 package com.hocel.demodriver.screen.home
 
-import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -13,9 +12,7 @@ import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
 import javax.inject.Inject
@@ -31,8 +28,6 @@ class HomeViewModel @Inject constructor(
     var currentTrip: MutableState<Trip> = mutableStateOf(Trip())
         private set
 
-    var driverAction: MutableState<TripFlowAction> = mutableStateOf(TripFlowAction.Idle)
-
     var tripAction = mutableStateOf(TripFlowAction.Idle)
         private set
     var userData = MutableStateFlow(Driver())
@@ -47,22 +42,28 @@ class HomeViewModel @Inject constructor(
         }
         viewModelScope.launch {
             RepositoryImpl.readIncomingTrip().collect {
-                tripData.emit(it)
+                tripData.emit(it.filter { trip ->
+                    if (trip.status == TripStatus.Pending) {
+                        true
+                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
+                        true
+                    } else {
+                        false
+                    }
+                })
+                if (it.isNotEmpty()) handleTripEvent(it.first())
             }
-        }
-        viewModelScope.launch {
-            delay(300)
-            handleTripEvent(tripData.value.first())
         }
     }
 
     private fun handleTripEvent(trip: Trip) {
-        Log.d("MyTrip", "${trip.status}")
         when (trip.status) {
             TripStatus.Pending -> {
-                ringtoneManager.startRinging()
-                tripAction.value = TripFlowAction.Pending
-                currentTrip.value = trip
+                if (userData.value.status == DriverStatus.Online){
+                    ringtoneManager.startRinging()
+                    tripAction.value = TripFlowAction.Pending
+                    currentTrip.value = trip
+                }
             }
 
             TripStatus.Accepted -> {
@@ -72,9 +73,32 @@ class HomeViewModel @Inject constructor(
 
             }
 
-            else -> {
-
+            TripStatus.GoToPickUp -> {
+                tripAction.value = TripFlowAction.GoToPickUp
+                currentTrip.value = trip
             }
+
+            TripStatus.ArrivedToPickUp -> {
+                tripAction.value = TripFlowAction.ArrivedToPickUp
+                currentTrip.value = trip
+            }
+
+            TripStatus.StartTrip -> {
+                tripAction.value = TripFlowAction.StartTrip
+                currentTrip.value = trip
+            }
+
+            TripStatus.Finished -> {
+                tripAction.value = TripFlowAction.EndTrip
+                currentTrip.value = trip
+            }
+
+            TripStatus.CanceledTrip -> {
+                tripAction.value = TripFlowAction.CancelTrip
+                currentTrip.value = trip
+            }
+
+            else -> Unit
         }
     }
 
@@ -84,9 +108,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun acceptTrip(tripId: ObjectId) {
+    fun tripAction(tripId: ObjectId, action: TripStatus) {
         viewModelScope.launch {
-            RepositoryImpl.acceptTrip(tripId)
+            RepositoryImpl.tripAction(tripId, action)
         }
     }
 

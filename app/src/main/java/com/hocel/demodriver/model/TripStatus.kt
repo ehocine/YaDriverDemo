@@ -4,6 +4,9 @@ enum class TripStatus(val status: String) {
     Pending("pending"),
     Accepted("accepted"),
     Canceled("canceled"),
+    GoToPickUp("go_to_pickup"),
     ArrivedToPickUp("arrived_to_pickup"),
-    Finished("finished")
+    StartTrip("start_trip"),
+    Finished("finished"),
+    CanceledTrip("canceled_trip")
 }

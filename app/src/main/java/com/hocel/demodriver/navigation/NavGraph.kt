@@ -83,8 +83,7 @@ fun NavGraphBuilder.homeRoute() {
         HomeScreen(
             viewModel = viewModel,
             onSwitchClicked = viewModel::switchStatus,
-            acceptTrip = viewModel::acceptTrip,
-            declineTrip = viewModel::declineTrip
+            tripFlowAction = viewModel::tripAction
         )
     }
 }
