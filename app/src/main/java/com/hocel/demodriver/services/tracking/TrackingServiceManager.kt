@@ -1,4 +1,4 @@
-package com.hocel.demodriver.services
+package com.hocel.demodriver.services.tracking
 
 import android.app.Application
 import android.content.Intent
@@ -11,31 +11,31 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class ServiceManager @Inject constructor(
-    private val application: Application
+class TrackingServiceManager @Inject constructor(
+    private val application: Application,
 ) {
 
-    fun startService() {
-        if (application.isServiceRunningInForeground(MyService::class.java)) return
-
+    fun startTracking() {
+        if (application.isServiceRunningInForeground(TrackingService::class.java)) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Handler(Looper.getMainLooper()).post {
                 ContextCompat.startForegroundService(
                     application.applicationContext,
-                    Intent(application.applicationContext, MyService::class.java)
+                    Intent(application.applicationContext, TrackingService::class.java)
                 )
             }
         } else {
             ContextCompat.startForegroundService(
                 application.applicationContext,
-                Intent(application.applicationContext, MyService::class.java)
+                Intent(application.applicationContext, TrackingService::class.java)
             )
         }
     }
 
-    fun stopService() {
+    fun stopTracking() {
         application.applicationContext.stopService(
-            Intent(application.applicationContext, MyService::class.java)
+            Intent(application.applicationContext, TrackingService::class.java)
         )
     }
+
 }

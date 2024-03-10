@@ -29,7 +29,23 @@ fun Context.isServiceRunningInForeground(serviceClass: Class<*>): Boolean {
     }
     return false
 }
+@RequiresApi(Build.VERSION_CODES.O)
+fun NotificationManager.createNotificationChannelIfNotExist(
+    channelId: String,
+    channelName: String,
+    importance: Int = NotificationManager.IMPORTANCE_HIGH
+) {
+    var channel = this.getNotificationChannel(channelId)
 
+    if (channel == null) {
+        channel = NotificationChannel(
+            channelId,
+            channelName,
+            importance
+        )
+        this.createNotificationChannel(channel)
+    }
+}
 @RequiresApi(Build.VERSION_CODES.O)
 fun pushRequestNotification(
     context: Context,

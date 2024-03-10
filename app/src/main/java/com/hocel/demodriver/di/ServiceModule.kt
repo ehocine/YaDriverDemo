@@ -39,7 +39,7 @@ object ServiceModule {
         .setAutoCancel(false)
         .setOngoing(true)
         .setSmallIcon(R.mipmap.ic_logo)
-        .setContentTitle("Trip")
-        .setContentText("New trip")
+        .setContentTitle("Status")
+        .setContentText("You are on service")
         .setContentIntent(pendingIntent)
 }

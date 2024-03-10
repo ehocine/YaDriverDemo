@@ -16,4 +16,6 @@ interface Repository {
     suspend fun tripAction(tripId: ObjectId, action: TripStatus)
     suspend fun switchDriverStatus(status: DriverStatus)
     suspend fun cancelTrip(id: ObjectId)
+
+    suspend fun sendLocation(lat: Double, lng: Double)
 }

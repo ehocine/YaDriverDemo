@@ -143,4 +143,21 @@ object RepositoryImpl : Repository {
     override suspend fun cancelTrip(id: ObjectId) {
 
     }
+
+    override suspend fun sendLocation(lat: Double, lng: Double) {
+        if (user != null) {
+            realm.write {
+                val queriedDriver =
+                    query<Driver>(query = "_id == $0", ObjectId(user.id))
+                        .first()
+                        .find()
+                if (queriedDriver != null) {
+                    queriedDriver.driverLocation = "($lat , $lng)"
+                    queriedDriver.lastTracking = RealmInstant.now()
+                } else {
+                    Log.d("MongoRepository", "Queried Driver does not exist.")
+                }
+            }
+        }
+    }
 }

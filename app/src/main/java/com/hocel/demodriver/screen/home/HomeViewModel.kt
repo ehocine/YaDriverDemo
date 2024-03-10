@@ -16,7 +16,9 @@ import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
+import com.hocel.demodriver.services.MyService
 import com.hocel.demodriver.services.ServiceManager
+import com.hocel.demodriver.services.tracking.TrackingServiceManager
 import com.hocel.demodriver.util.Constants
 import com.hocel.demodriver.util.pushRequestNotification
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +33,7 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val application: Application,
     private val serviceManager: ServiceManager,
+    private val trackingService: TrackingServiceManager,
     private val ringtoneManager: RingtoneManager
 ) : ViewModel() {
 
@@ -49,7 +52,10 @@ class HomeViewModel @Inject constructor(
         serviceManager.startService()
         viewModelScope.launch {
             RepositoryImpl.getUserData().collect {
-                if (it.list.isNotEmpty()) userData.emit(it.list.first())
+                if (it.list.isNotEmpty()) {
+                    userData.emit(it.list.first())
+                    if (it.list.first().status == DriverStatus.Online) trackingService.startTracking()
+                }
             }
         }
         viewModelScope.launch {
@@ -63,7 +69,7 @@ class HomeViewModel @Inject constructor(
                         false
                     }
                 })
-                if (it.isNotEmpty()) handleTripEvent(tripData.value.first())
+                if (tripData.value.isNotEmpty()) handleTripEvent(tripData.value.last())
             }
         }
     }
@@ -72,20 +78,6 @@ class HomeViewModel @Inject constructor(
     private fun handleTripEvent(trip: Trip) {
         when (trip.status) {
             TripStatus.Pending -> {
-                pushRequestNotification(
-                    context = application.applicationContext,
-                    channelId = Constants.NOTIFICATION_CHANNEL_ID,
-                    channelName = Constants.NOTIFICATION_CHANNEL_NAME,
-                    title = "New trip",
-                    description = "You have a new trip request",
-                    intent = Intent(
-                        application.applicationContext,
-                        MainActivity::class.java
-                    ).apply {
-                        action = TripFlowAction.Pending.name
-                        putExtra("trip_id", trip.owner_id)
-                    }
-                )
                 if (userData.value.status == DriverStatus.Online) {
                     ringtoneManager.startRinging()
                     tripAction.value = TripFlowAction.Pending
@@ -136,6 +128,13 @@ class HomeViewModel @Inject constructor(
 
     fun switchStatus(status: DriverStatus) {
         viewModelScope.launch {
+            if (status == DriverStatus.Online) {
+                serviceManager.startService()
+                trackingService.startTracking()
+            } else {
+                serviceManager.stopService()
+                trackingService.stopTracking()
+            }
             RepositoryImpl.switchDriverStatus(status)
         }
     }

@@ -1,9 +1,12 @@
 package com.hocel.demodriver
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.navigation.compose.rememberNavController
+import com.hocel.demodriver.data.RepositoryImpl
 import com.stevdza.san.demodriver.navigation.Screen
 import com.hocel.demodriver.navigation.SetupNavGraph
 import com.hocel.demodriver.screen.auth.AuthenticationViewModel
@@ -13,6 +16,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.realm.kotlin.mongodb.App
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {

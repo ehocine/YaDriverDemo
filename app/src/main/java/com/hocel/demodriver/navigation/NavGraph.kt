@@ -1,5 +1,7 @@
 package com.hocel.demodriver.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,6 +18,7 @@ import com.stevdzasan.onetap.rememberOneTapSignInState
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.stevdza.san.demodriver.navigation.Screen
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun SetupNavGraph(
     startDestination: String,
@@ -77,6 +80,7 @@ fun NavGraphBuilder.authRoute(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun NavGraphBuilder.homeRoute() {
     composable(route = Screen.Home.route) {
         val viewModel: HomeViewModel = hiltViewModel()
