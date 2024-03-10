@@ -1,6 +1,9 @@
 package com.hocel.demodriver.screen.home
 
 import android.annotation.SuppressLint
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -64,6 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -76,12 +80,16 @@ fun HomeScreen(
     val user by viewModel.userData.collectAsState()
     val tripData by viewModel.tripData.collectAsState()
     var showBottomSheet by remember { mutableStateOf(false) }
+    val trip by viewModel.currentTrip
 
     LaunchedEffect(key1 = tripData, key2 = user.status) {
-        if (user.status == DriverStatus.Online) showBottomSheet = tripData.isNotEmpty()
+        showBottomSheet = if (user.status == DriverStatus.Online) {
+            trip.status != TripStatus.Closed || trip.status != TripStatus.CanceledTrip
+        } else {
+            false
+        }
     }
 
-    val trip by viewModel.currentTrip
     val tripAction by viewModel.tripAction
 
     val scope = rememberCoroutineScope()
@@ -151,6 +159,7 @@ fun HomeScreen(
                                         sheetTitle = "You are on trip",
                                         actionButtonText = "End trip",
                                         tripAction = {
+                                            viewModel.switchStatus(DriverStatus.InTrip)
                                             tripFlowAction(it, TripStatus.Finished)
                                         }
                                     )
@@ -162,7 +171,13 @@ fun HomeScreen(
                                         sheetTitle = "Great work! Trip finished",
                                         actionButtonText = "Close",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.Finished)
+                                            viewModel.switchStatus(DriverStatus.Online)
+                                            tripFlowAction(it, TripStatus.Closed)
+                                            scope.launch {
+                                                sheetState.hide()
+                                                delay(100)
+                                                showBottomSheet = false
+                                            }
                                         }
                                     )
                                 }
@@ -177,12 +192,19 @@ fun HomeScreen(
                                         }
                                     )
                                 }
+                                TripFlowAction.Closed -> {
+                                    showBottomSheet = false
+                                }
 
                                 else -> Unit
                             }
                         },
                         onCloseClicked = {
-                            if (tripAction == TripFlowAction.Accepted) tripFlowAction(trip._id, TripStatus.CanceledTrip)
+                            if (tripAction == TripFlowAction.Accepted) tripFlowAction(
+                                trip._id,
+                                TripStatus.CanceledTrip
+                            )
+                            viewModel.declineTrip()
                             scope.launch {
                                 sheetState.hide()
                                 delay(100)
@@ -209,7 +231,9 @@ private fun HomeContent(
     onSwitchClicked: (DriverStatus) -> Unit
 ) {
     var checked by remember { mutableStateOf(driverStatus != DriverStatus.Offline) }
-    val scope = rememberCoroutineScope()
+    LaunchedEffect(key1 = driverStatus) {
+        checked = driverStatus != DriverStatus.Offline
+    }
     Column(
         modifier = Modifier
             .fillMaxSize(),
@@ -309,7 +333,7 @@ private fun SheetContent(
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Close button")
                 }
             }
-        }else{
+        } else {
             Spacer(modifier = Modifier.padding(10.dp))
         }
         content()

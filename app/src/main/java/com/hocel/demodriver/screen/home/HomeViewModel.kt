@@ -1,9 +1,14 @@
 package com.hocel.demodriver.screen.home
 
+import android.app.Application
+import android.content.Intent
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
 import com.hocel.demodriver.model.Driver
@@ -11,6 +16,9 @@ import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
+import com.hocel.demodriver.services.ServiceManager
+import com.hocel.demodriver.util.Constants
+import com.hocel.demodriver.util.pushRequestNotification
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -18,8 +26,11 @@ import org.mongodb.kbson.ObjectId
 import javax.inject.Inject
 
 
+@RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    private val application: Application,
+    private val serviceManager: ServiceManager,
     private val ringtoneManager: RingtoneManager
 ) : ViewModel() {
 
@@ -35,6 +46,7 @@ class HomeViewModel @Inject constructor(
 
     init {
         RepositoryImpl.initialize()
+        serviceManager.startService()
         viewModelScope.launch {
             RepositoryImpl.getUserData().collect {
                 if (it.list.isNotEmpty()) userData.emit(it.list.first())
@@ -51,15 +63,30 @@ class HomeViewModel @Inject constructor(
                         false
                     }
                 })
-                if (it.isNotEmpty()) handleTripEvent(it.first())
+                if (it.isNotEmpty()) handleTripEvent(tripData.value.first())
             }
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun handleTripEvent(trip: Trip) {
         when (trip.status) {
             TripStatus.Pending -> {
-                if (userData.value.status == DriverStatus.Online){
+                pushRequestNotification(
+                    context = application.applicationContext,
+                    channelId = Constants.NOTIFICATION_CHANNEL_ID,
+                    channelName = Constants.NOTIFICATION_CHANNEL_NAME,
+                    title = "New trip",
+                    description = "You have a new trip request",
+                    intent = Intent(
+                        application.applicationContext,
+                        MainActivity::class.java
+                    ).apply {
+                        action = TripFlowAction.Pending.name
+                        putExtra("trip_id", trip.owner_id)
+                    }
+                )
+                if (userData.value.status == DriverStatus.Online) {
                     ringtoneManager.startRinging()
                     tripAction.value = TripFlowAction.Pending
                     currentTrip.value = trip
@@ -93,6 +120,11 @@ class HomeViewModel @Inject constructor(
                 currentTrip.value = trip
             }
 
+            TripStatus.Closed -> {
+                tripAction.value = TripFlowAction.Closed
+                currentTrip.value = trip
+            }
+
             TripStatus.CanceledTrip -> {
                 tripAction.value = TripFlowAction.CancelTrip
                 currentTrip.value = trip
@@ -114,11 +146,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun declineTrip(tripId: String) {
-
-    }
-
-    fun cancelTrip() {
-
+    fun declineTrip() {
+        ringtoneManager.stopRinging()
     }
 }

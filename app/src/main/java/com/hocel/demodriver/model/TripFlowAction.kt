@@ -8,5 +8,6 @@ enum class TripFlowAction {
     ArrivedToPickUp,
     StartTrip,
     EndTrip,
+    Closed,
     CancelTrip
 }
