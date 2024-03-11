@@ -34,7 +34,7 @@
             </intent-filter>
         </activity>
         <service
-            android:name=".services.MyService"
+            android:name=".services.backgroundService.MyService"
             android:foregroundServiceType="specialUse"
             android:enabled="true"
             android:exported="false" />

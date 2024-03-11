@@ -2,7 +2,6 @@ package com.hocel.demodriver.screen.home
 
 import android.annotation.SuppressLint
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -54,12 +53,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.maps.android.compose.CameraPositionState
@@ -93,10 +90,17 @@ fun HomeScreen(
     val tripData by viewModel.tripData.collectAsState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val trip by viewModel.currentTrip
-
     LaunchedEffect(key1 = tripData, key2 = user.status) {
         showBottomSheet = if (user.status == DriverStatus.Online) {
-            trip.status != TripStatus.Closed || trip.status != TripStatus.Canceled
+            if (trip.status == TripStatus.Pending) {
+                true
+            } else {
+                if (trip.driverId == user.owner_id) {
+                    trip.status != TripStatus.Closed || trip.status != TripStatus.Canceled
+                } else {
+                    false
+                }
+            }
         } else {
             false
         }
@@ -109,6 +113,17 @@ fun HomeScreen(
         confirmValueChange = { false }
     )
     val currentLocation = viewModel.currentLocation.collectAsState()
+
+    LaunchedEffect(key1 = tripData, key2 = user.status) {
+
+        if (user.status == DriverStatus.Online) {
+            if (trip.status != TripStatus.Pending)
+                if (trip.driverId != user.owner_id)
+                    sheetState.hide()
+        } else {
+            sheetState.hide()
+        }
+    }
 
     Scaffold(
         content = {
@@ -123,14 +138,18 @@ fun HomeScreen(
                         content = {
                             when (tripAction) {
                                 TripFlowAction.Pending -> {
-                                    TripFlowSheet(
-                                        trip = trip,
-                                        sheetTitle = "New trip request",
-                                        actionButtonText = "Accept trip",
-                                        tripAction = {
-                                            tripFlowAction(it, TripStatus.Accepted)
-                                        }
-                                    )
+                                    if (tripData.isNotEmpty()) {
+                                        TripFlowSheet(
+                                            trip = tripData.last(),
+                                            sheetTitle = "New trip request",
+                                            actionButtonText = "Accept trip",
+                                            tripAction = {
+                                                tripFlowAction(it, TripStatus.Accepted)
+                                            }
+                                        )
+                                    } else {
+                                        showBottomSheet = false
+                                    }
                                 }
 
                                 TripFlowAction.Accepted -> {

@@ -1,4 +1,4 @@
-package com.hocel.demodriver.services
+package com.hocel.demodriver.services.backgroundService
 
 import android.app.Application
 import android.content.Intent

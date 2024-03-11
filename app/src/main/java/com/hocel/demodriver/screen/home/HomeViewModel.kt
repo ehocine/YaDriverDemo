@@ -1,15 +1,13 @@
 package com.hocel.demodriver.screen.home
 
-import android.app.Application
-import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.LatLng
-import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.LocationProviderManager
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
@@ -18,11 +16,8 @@ import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
-import com.hocel.demodriver.services.MyService
-import com.hocel.demodriver.services.ServiceManager
+import com.hocel.demodriver.services.backgroundService.ServiceManager
 import com.hocel.demodriver.services.tracking.TrackingServiceManager
-import com.hocel.demodriver.util.Constants
-import com.hocel.demodriver.util.pushRequestNotification
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +30,6 @@ import javax.inject.Inject
 @RequiresApi(Build.VERSION_CODES.O)
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val application: Application,
     private val serviceManager: ServiceManager,
     private val trackingService: TrackingServiceManager,
     private val ringtoneManager: RingtoneManager,
@@ -92,7 +86,6 @@ class HomeViewModel @Inject constructor(
                 if (userData.value.status == DriverStatus.Online) {
                     ringtoneManager.startRinging()
                     tripAction.value = TripFlowAction.Pending
-                    currentTrip.value = trip
                 }
             }
 
@@ -160,7 +153,7 @@ class HomeViewModel @Inject constructor(
         ringtoneManager.stopRinging()
     }
 
-    fun startLocationUpdate() {
+    private fun startLocationUpdate() {
         locationJob?.cancel()
         locationJob = viewModelScope.launch {
             _locationProvider.requestLocationUpdate {

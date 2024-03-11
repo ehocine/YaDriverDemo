@@ -140,10 +140,6 @@ object RepositoryImpl : Repository {
         }
     }
 
-    override suspend fun cancelTrip(id: ObjectId) {
-
-    }
-
     override suspend fun sendLocation(lat: Double, lng: Double) {
         if (user != null) {
             realm.write {

@@ -1,4 +1,4 @@
-package com.hocel.demodriver.services
+package com.hocel.demodriver.services.backgroundService
 
 import android.annotation.SuppressLint
 import android.app.NotificationManager
