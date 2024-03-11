@@ -8,6 +8,5 @@ enum class TripStatus(val status: String) {
     ArrivedToPickUp("arrived_to_pickup"),
     StartTrip("start_trip"),
     Finished("finished"),
-    Closed("closed"),
-    CanceledTrip("canceled_trip")
+    Closed("closed")
 }

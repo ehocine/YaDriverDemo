@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +20,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
@@ -46,18 +49,27 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.hocel.demodriver.R
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
@@ -84,7 +96,7 @@ fun HomeScreen(
 
     LaunchedEffect(key1 = tripData, key2 = user.status) {
         showBottomSheet = if (user.status == DriverStatus.Online) {
-            trip.status != TripStatus.Closed || trip.status != TripStatus.CanceledTrip
+            trip.status != TripStatus.Closed || trip.status != TripStatus.Canceled
         } else {
             false
         }
@@ -96,6 +108,7 @@ fun HomeScreen(
     val sheetState = rememberModalBottomSheetState(
         confirmValueChange = { false }
     )
+    val currentLocation = viewModel.currentLocation.collectAsState()
 
     Scaffold(
         content = {
@@ -185,13 +198,14 @@ fun HomeScreen(
                                 TripFlowAction.CancelTrip -> {
                                     TripFlowSheet(
                                         trip = trip,
-                                        sheetTitle = "Want to cancel trip?",
-                                        actionButtonText = "Cancel",
+                                        sheetTitle = "Trip canceled",
+                                        actionButtonText = "Exit",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.CanceledTrip)
+                                            tripFlowAction(it, TripStatus.Canceled)
                                         }
                                     )
                                 }
+
                                 TripFlowAction.Closed -> {
                                     showBottomSheet = false
                                 }
@@ -202,7 +216,7 @@ fun HomeScreen(
                         onCloseClicked = {
                             if (tripAction == TripFlowAction.Accepted) tripFlowAction(
                                 trip._id,
-                                TripStatus.CanceledTrip
+                                TripStatus.Canceled
                             )
                             viewModel.declineTrip()
                             scope.launch {
@@ -218,6 +232,8 @@ fun HomeScreen(
             HomeContent(
                 driverName = user.name,
                 driverStatus = user.status,
+                location = currentLocation.value,
+                handlePosition = viewModel::getCurrentPosition,
                 onSwitchClicked = onSwitchClicked
             )
         }
@@ -228,8 +244,47 @@ fun HomeScreen(
 private fun HomeContent(
     driverName: String,
     driverStatus: DriverStatus,
+    location: LatLng,
+    handlePosition: () -> Unit,
     onSwitchClicked: (DriverStatus) -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val isMapLoaded = remember { mutableStateOf(false) }
+    val cameraPositionState: CameraPositionState = rememberCameraPositionState()
+    val zoom = 11f
+
+    val mapUiSettings by remember {
+        mutableStateOf(
+            MapUiSettings(
+                mapToolbarEnabled = false,
+                myLocationButtonEnabled = true,
+                zoomControlsEnabled = false,
+                scrollGesturesEnabled = true,
+            )
+        )
+    }
+
+    if (location.latitude > 0.0 && isMapLoaded.value) {
+        LaunchedEffect(location.latitude) {
+            cameraPositionState.animate(
+                CameraUpdateFactory.newLatLngZoom(
+                    location,
+                    zoom
+                )
+            )
+        }
+    }
+
+    var dataline: String
+    context.resources.openRawResource(R.raw.harbin_map_style).bufferedReader().use {
+        dataline = it.readText()
+    }
+
+    val properties by remember {
+        mutableStateOf(MapProperties(mapStyleOptions = MapStyleOptions(dataline)))
+    }
+
     var checked by remember { mutableStateOf(driverStatus != DriverStatus.Offline) }
     LaunchedEffect(key1 = driverStatus) {
         checked = driverStatus != DriverStatus.Offline
@@ -244,23 +299,53 @@ private fun HomeContent(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            val location = LatLng(36.75, 2.95)
-            val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(location, 15f)
-            }
             Box(
                 modifier = Modifier
                     .weight(8f)
             ) {
                 GoogleMap(
-                    cameraPositionState = cameraPositionState
+                    cameraPositionState = cameraPositionState,
+                    uiSettings = mapUiSettings,
+                    properties = properties,
+                    onMapLoaded = { isMapLoaded.value = true }
                 ) {
                     Marker(
                         state = MarkerState(position = location),
-                        title = "Algiers",
-                        snippet = "Marker in Algiers"
+                        title = "My position"
                     )
                 }
+
+                Box(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.BottomEnd)
+                        .background(color = Color.Transparent, shape = CircleShape)
+                        .shadow(elevation = 15.dp, shape = CircleShape)
+                        .clickable {
+                            handlePosition()
+                            scope.launch {
+                                cameraPositionState.animate(
+                                    CameraUpdateFactory.newLatLngZoom(
+                                        location,
+                                        zoom
+                                    )
+                                )
+                            }
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(color = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GpsFixed,
+                            modifier = Modifier.align(Alignment.Center),
+                            contentDescription = null
+                        )
+                    }
+                }
+
                 if (driverStatus == DriverStatus.Offline) {
                     Box(
                         modifier = Modifier

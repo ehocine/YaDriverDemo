@@ -36,8 +36,8 @@ class TrackingService : LifecycleService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notifManager.createNotificationChannelIfNotExist(
-                channelId = Constants.NOTIFICATION_CHANNEL_ID,
-                channelName = Constants.NOTIFICATION_CHANNEL_NAME,
+                channelId = Constants.TRACKING_NOTIFICATION_CHANNEL_ID,
+                channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
                 importance = NotificationManager.IMPORTANCE_HIGH
             )
         }

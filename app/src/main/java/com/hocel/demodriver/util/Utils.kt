@@ -29,6 +29,22 @@ fun Context.isServiceRunningInForeground(serviceClass: Class<*>): Boolean {
     }
     return false
 }
+
+fun Context.isAppInForeground(appPackageName: String): Boolean {
+    val activityManager = this.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val appProcesses = activityManager.runningAppProcesses ?: return false
+
+    for (appProcess in appProcesses) {
+        if (appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND) {
+            for (activeProcess in appProcess.pkgList) {
+                if (activeProcess == appPackageName) {
+                    return true
+                }
+            }
+        }
+    }
+    return false
+}
 @RequiresApi(Build.VERSION_CODES.O)
 fun NotificationManager.createNotificationChannelIfNotExist(
     channelId: String,

@@ -7,24 +7,21 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.hocel.demodriver.MainActivity
-import com.hocel.demodriver.R
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants
-import com.hocel.demodriver.util.Constants.NOTIFICATION_CHANNEL_ID
+import com.hocel.demodriver.util.Constants.TRACKING_NOTIFICATION_CHANNEL_ID
 import com.hocel.demodriver.util.createNotificationChannelIfNotExist
-import com.hocel.demodriver.util.isServiceRunningInForeground
+import com.hocel.demodriver.util.isAppInForeground
 import com.hocel.demodriver.util.pushRequestNotification
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -70,13 +67,16 @@ class MyService : Service() {
                     val notifManager =
                         getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                     notifManager.createNotificationChannelIfNotExist(
-                        channelId = Constants.NOTIFICATION_CHANNEL_ID,
-                        channelName = Constants.NOTIFICATION_CHANNEL_NAME,
+                        channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
+                        channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
                         importance = NotificationManager.IMPORTANCE_HIGH
                     )
                 }
                 startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
-                if (tripData.value.isNotEmpty()) handleTripEvent(tripData.value.last())
+                if (tripData.value.isNotEmpty()) handleTripEvent(
+                    trip = tripData.value.last(),
+                    context = applicationContext
+                )
             }
         }
 
@@ -84,28 +84,31 @@ class MyService : Service() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleTripEvent(trip: Trip) {
+    private fun handleTripEvent(trip: Trip, context: Context) {
         when (trip.status) {
             TripStatus.Pending -> {
-                pushRequestNotification(
-                    context = application.applicationContext,
-                    channelId = NOTIFICATION_CHANNEL_ID,
-                    channelName = Constants.NOTIFICATION_CHANNEL_NAME,
-                    title = "New trip",
-                    description = "You have a new trip request",
-                    intent = Intent(
-                        application.applicationContext,
-                        MainActivity::class.java
-                    ).apply {
-                        action = TripFlowAction.Pending.name
-                        putExtra("trip_id", trip.owner_id)
-                    }
-                )
-                ringtoneManager.startRinging()
-                Log.d("MyService", "Got a trip: ${trip.client}")
+                if (!context.isAppInForeground(context.packageName)) {
+                    pushRequestNotification(
+                        context = application.applicationContext,
+                        channelId = NOTIFICATION_CHANNEL_ID,
+                        channelName = NOTIFICATION_CHANNEL_NAME,
+                        title = "New trip",
+                        description = "You have a new trip request",
+                        intent = Intent(
+                            application.applicationContext,
+                            MainActivity::class.java
+                        ).apply {
+                            action = TripFlowAction.Pending.name
+                            putExtra("trip_id", trip.owner_id)
+                        }
+                    )
+                    ringtoneManager.startRinging()
+                }
             }
 
             else -> Unit
         }
     }
 }
+internal const val NOTIFICATION_CHANNEL_ID = "overlay_notification_channel"
+internal const val NOTIFICATION_CHANNEL_NAME = "Overlay Notification"

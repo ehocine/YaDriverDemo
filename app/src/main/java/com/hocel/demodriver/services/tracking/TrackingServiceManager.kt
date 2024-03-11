@@ -12,7 +12,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TrackingServiceManager @Inject constructor(
-    private val application: Application,
+    private val application: Application
 ) {
 
     fun startTracking() {

@@ -35,7 +35,7 @@ object ServiceModule {
     fun provideBaseNotificationBuilder(
         @ApplicationContext app: Context,
         pendingIntent: PendingIntent
-    ) = NotificationCompat.Builder(app, Constants.NOTIFICATION_CHANNEL_ID)
+    ) = NotificationCompat.Builder(app, Constants.TRACKING_NOTIFICATION_CHANNEL_ID)
         .setAutoCancel(false)
         .setOngoing(true)
         .setSmallIcon(R.mipmap.ic_logo)
