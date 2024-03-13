@@ -36,8 +36,6 @@ class HomeViewModel @Inject constructor(
     private val _locationProvider: LocationProviderManager,
 ) : ViewModel() {
 
-    var tripData = MutableStateFlow(emptyList<Trip>())
-
     var currentTrip: MutableState<Trip> = mutableStateOf(Trip())
         private set
 
@@ -53,30 +51,38 @@ class HomeViewModel @Inject constructor(
 
     init {
         RepositoryImpl.initialize()
-        serviceManager.startService()
+        //serviceManager.startService()
         startLocationUpdate()
         viewModelScope.launch {
-            RepositoryImpl.getUserData().collect {
-                if (it.list.isNotEmpty()) {
-                    userData.emit(it.list.first())
-                    if (it.list.first().status == DriverStatus.Online) trackingService.startTracking()
+            RepositoryImpl.getUserData().collect { user ->
+                user?.let {
+                    userData.emit(user)
+                    user.tripRequestId?.let { tripId ->
+                        if (user.currentTripId != tripId) {
+                            val newTrip = RepositoryImpl.getTripById(tripId)
+                            Log.d("InTrip", "${newTrip}")
+                            currentTrip.value = newTrip
+                            handleTripEvent(newTrip)
+                        }
+                    }
+                    if (user.status == DriverStatus.Online) trackingService.startTracking()
                 }
             }
         }
-        viewModelScope.launch {
-            RepositoryImpl.readIncomingTrip().collect {
-                tripData.emit(it.filter { trip ->
-                    if (trip.status == TripStatus.Pending) {
-                        true
-                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
-                        true
-                    } else {
-                        false
-                    }
-                })
-                if (tripData.value.isNotEmpty()) handleTripEvent(tripData.value.last())
-            }
-        }
+//        viewModelScope.launch {
+//            RepositoryImpl.readIncomingTrip().collect {
+//                tripData.emit(it.filter { trip ->
+//                    if (trip.status == TripStatus.Pending) {
+//                        true
+//                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
+//                        true
+//                    } else {
+//                        false
+//                    }
+//                })
+//                if (tripData.value.isNotEmpty()) handleTripEvent(tripData.value.last())
+//            }
+//        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -133,7 +139,7 @@ class HomeViewModel @Inject constructor(
     fun switchStatus(status: DriverStatus) {
         viewModelScope.launch {
             if (status == DriverStatus.Online) {
-                serviceManager.startService()
+                //serviceManager.startService()
                 trackingService.startTracking()
             } else {
                 serviceManager.stopService()

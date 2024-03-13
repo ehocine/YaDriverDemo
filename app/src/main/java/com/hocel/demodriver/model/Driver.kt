@@ -8,10 +8,10 @@ import org.mongodb.kbson.ObjectId
 class Driver : RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId.invoke()
-    var owner_id: String = ""
     var name: String = ""
     var email: String = ""
     var currentTripId: String? = null
+    var tripRequestId: String? = null
     var driverLocation: String? = null
     var lastTracking: RealmInstant? = null
     private var state: String = DriverStatus.Offline.status

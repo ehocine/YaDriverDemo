@@ -53,31 +53,31 @@ class MyService : Service() {
     @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         scope.launch {
-            RepositoryImpl.readIncomingTrip().collect {
-                tripData.emit(it.filter { trip ->
-                    if (trip.status == TripStatus.Pending) {
-                        true
-                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
-                        true
-                    } else {
-                        false
-                    }
-                })
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val notifManager =
-                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    notifManager.createNotificationChannelIfNotExist(
-                        channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
-                        channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
-                        importance = NotificationManager.IMPORTANCE_HIGH
-                    )
-                }
-                startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
-                if (tripData.value.isNotEmpty()) handleTripEvent(
-                    trip = tripData.value.last(),
-                    context = applicationContext
-                )
-            }
+//            RepositoryImpl.readIncomingTrip().collect {
+//                tripData.emit(it.filter { trip ->
+//                    if (trip.status == TripStatus.Pending) {
+//                        true
+//                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
+//                        true
+//                    } else {
+//                        false
+//                    }
+//                })
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                    val notifManager =
+//                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+//                    notifManager.createNotificationChannelIfNotExist(
+//                        channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
+//                        channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
+//                        importance = NotificationManager.IMPORTANCE_HIGH
+//                    )
+//                }
+//                startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
+//                if (tripData.value.isNotEmpty()) handleTripEvent(
+//                    trip = tripData.value.last(),
+//                    context = applicationContext
+//                )
+//            }
         }
 
         return START_STICKY
@@ -99,7 +99,7 @@ class MyService : Service() {
                             MainActivity::class.java
                         ).apply {
                             action = TripFlowAction.Pending.name
-                            putExtra("trip_id", trip.owner_id)
+                            putExtra("trip_id", trip._id.toHexString())
                         }
                     )
                     ringtoneManager.startRinging()
@@ -110,5 +110,6 @@ class MyService : Service() {
         }
     }
 }
+
 internal const val NOTIFICATION_CHANNEL_ID = "overlay_notification_channel"
 internal const val NOTIFICATION_CHANNEL_NAME = "Overlay Notification"

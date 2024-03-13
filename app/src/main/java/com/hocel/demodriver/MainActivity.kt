@@ -7,18 +7,29 @@ import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.navigation.compose.rememberNavController
 import com.hocel.demodriver.data.RepositoryImpl
-import com.stevdza.san.demodriver.navigation.Screen
+import com.hocel.demodriver.data.RepositoryImpl.realm
+import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.navigation.SetupNavGraph
-import com.hocel.demodriver.screen.auth.AuthenticationViewModel
-import com.stevdza.san.demodriver.ui.theme.MongoDemoTheme
 import com.hocel.demodriver.util.Constants.APP_ID
+import com.stevdza.san.demodriver.navigation.Screen
+import com.stevdza.san.demodriver.ui.theme.MongoDemoTheme
 import dagger.hilt.android.AndroidEntryPoint
+import io.realm.kotlin.ext.query
 import io.realm.kotlin.mongodb.App
+import io.realm.kotlin.mongodb.subscriptions
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        RepositoryImpl.configureCollections()
         setContent {
             MongoDemoTheme {
                 val navController = rememberNavController()

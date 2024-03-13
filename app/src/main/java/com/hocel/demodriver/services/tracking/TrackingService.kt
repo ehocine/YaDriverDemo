@@ -59,7 +59,7 @@ class TrackingService : LifecycleService() {
     private fun sendData(location: Location?) {
         location?.let {
             scope.launch {
-                RepositoryImpl.sendLocation(lat = it.latitude, lng = it.longitude)
+                //RepositoryImpl.sendLocation(lat = it.latitude, lng = it.longitude)
             }
         }
     }

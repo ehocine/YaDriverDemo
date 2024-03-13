@@ -8,7 +8,6 @@ import org.mongodb.kbson.ObjectId
 class Trip : RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId.invoke()
-    var owner_id: String = ""
     var client: String = ""
     var pickUpAddress: String = ""
     var dropOffAddress: String = ""

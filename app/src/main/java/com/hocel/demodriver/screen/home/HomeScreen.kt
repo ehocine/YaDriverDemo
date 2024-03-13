@@ -85,17 +85,15 @@ fun HomeScreen(
     onSwitchClicked: (DriverStatus) -> Unit,
     tripFlowAction: (tripId: ObjectId, action: TripStatus) -> Unit
 ) {
-
     val user by viewModel.userData.collectAsState()
-    val tripData by viewModel.tripData.collectAsState()
     var showBottomSheet by remember { mutableStateOf(false) }
     val trip by viewModel.currentTrip
-    LaunchedEffect(key1 = tripData, key2 = user.status) {
+    LaunchedEffect(key1 = trip, key2 = user.status) {
         showBottomSheet = if (user.status == DriverStatus.Online) {
             if (trip.status == TripStatus.Pending) {
                 true
             } else {
-                if (trip.driverId == user.owner_id) {
+                if (trip.driverId == user._id.toHexString()) {
                     trip.status != TripStatus.Closed || trip.status != TripStatus.Canceled
                 } else {
                     false
@@ -114,17 +112,6 @@ fun HomeScreen(
     )
     val currentLocation = viewModel.currentLocation.collectAsState()
 
-    LaunchedEffect(key1 = tripData, key2 = user.status) {
-
-        if (user.status == DriverStatus.Online) {
-            if (trip.status != TripStatus.Pending)
-                if (trip.driverId != user.owner_id)
-                    sheetState.hide()
-        } else {
-            sheetState.hide()
-        }
-    }
-
     Scaffold(
         content = {
             if (showBottomSheet) {
@@ -138,18 +125,14 @@ fun HomeScreen(
                         content = {
                             when (tripAction) {
                                 TripFlowAction.Pending -> {
-                                    if (tripData.isNotEmpty()) {
-                                        TripFlowSheet(
-                                            trip = tripData.last(),
-                                            sheetTitle = "New trip request",
-                                            actionButtonText = "Accept trip",
-                                            tripAction = {
-                                                tripFlowAction(it, TripStatus.Accepted)
-                                            }
-                                        )
-                                    } else {
-                                        showBottomSheet = false
-                                    }
+                                    TripFlowSheet(
+                                        trip = trip,
+                                        sheetTitle = "New trip request",
+                                        actionButtonText = "Accept trip",
+                                        tripAction = {
+                                            tripFlowAction(it, TripStatus.Accepted)
+                                        }
+                                    )
                                 }
 
                                 TripFlowAction.Accepted -> {
@@ -229,7 +212,9 @@ fun HomeScreen(
                                     showBottomSheet = false
                                 }
 
-                                else -> Unit
+                                else -> {
+                                    showBottomSheet = false
+                                }
                             }
                         },
                         onCloseClicked = {
