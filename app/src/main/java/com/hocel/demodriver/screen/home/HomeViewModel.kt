@@ -1,9 +1,7 @@
 package com.hocel.demodriver.screen.home
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -36,7 +34,9 @@ class HomeViewModel @Inject constructor(
     private val _locationProvider: LocationProviderManager,
 ) : ViewModel() {
 
-    var currentTrip: MutableState<Trip> = mutableStateOf(Trip())
+    var currentTrip = mutableStateOf(Trip())
+        private set
+    var currentTripId = mutableStateOf("")
         private set
 
     var tripAction = mutableStateOf(TripFlowAction.Idle)
@@ -51,38 +51,37 @@ class HomeViewModel @Inject constructor(
 
     init {
         RepositoryImpl.initialize()
-        //serviceManager.startService()
+        serviceManager.startService()
         startLocationUpdate()
         viewModelScope.launch {
             RepositoryImpl.getUserData().collect { user ->
                 user?.let {
                     userData.emit(user)
-                    user.tripRequestId?.let { tripId ->
-                        if (user.currentTripId != tripId) {
-                            val newTrip = RepositoryImpl.getTripById(tripId)
-                            Log.d("InTrip", "${newTrip}")
-                            currentTrip.value = newTrip
-                            handleTripEvent(newTrip)
+                    if (user.tripRequestId.isNotEmpty()) {
+                        if (user.currentTripId != user.tripRequestId) {
+                            RepositoryImpl.getTripById(user.tripRequestId).collect { trip ->
+                                trip?.let {
+                                    currentTrip.value = it
+                                    handleTripEvent(it)
+                                }
+                            }
+                        }
+                    }
+                    if (user.currentTripId.isNotEmpty()) {
+                        RepositoryImpl.getTripById(user.currentTripId).collect { trip ->
+                            trip?.let {
+                                currentTrip.value = it
+                                handleTripEvent(it)
+                            }
                         }
                     }
                     if (user.status == DriverStatus.Online) trackingService.startTracking()
                 }
             }
         }
-//        viewModelScope.launch {
-//            RepositoryImpl.readIncomingTrip().collect {
-//                tripData.emit(it.filter { trip ->
-//                    if (trip.status == TripStatus.Pending) {
-//                        true
-//                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
-//                        true
-//                    } else {
-//                        false
-//                    }
-//                })
-//                if (tripData.value.isNotEmpty()) handleTripEvent(tripData.value.last())
-//            }
-//        }
+        viewModelScope.launch {
+            //RepositoryImpl.getRider()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -131,15 +130,13 @@ class HomeViewModel @Inject constructor(
                 tripAction.value = TripFlowAction.CancelTrip
                 currentTrip.value = trip
             }
-
-            else -> Unit
         }
     }
 
     fun switchStatus(status: DriverStatus) {
         viewModelScope.launch {
             if (status == DriverStatus.Online) {
-                //serviceManager.startService()
+                serviceManager.startService()
                 trackingService.startTracking()
             } else {
                 serviceManager.stopService()

@@ -73,6 +73,7 @@ dependencies {
     // Mongo Realm
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1'
     implementation 'io.realm.kotlin:library-sync:1.13.0'
+    implementation 'io.realm.kotlin:library-base:1.13.0'
 
 
     implementation 'com.google.dagger:hilt-android:2.48'

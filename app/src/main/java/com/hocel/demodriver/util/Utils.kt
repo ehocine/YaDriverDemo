@@ -80,7 +80,7 @@ fun pushRequestNotification(
     val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val notificationBuilder = NotificationCompat.Builder(context, channelId)
-        .setSmallIcon(R.mipmap.ic_logo)
+        .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle(title)
         .setContentText(description)
         .setContentIntent(pendingIntent)

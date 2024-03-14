@@ -63,16 +63,16 @@ class MyService : Service() {
 //                        false
 //                    }
 //                })
-//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//                    val notifManager =
-//                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-//                    notifManager.createNotificationChannelIfNotExist(
-//                        channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
-//                        channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
-//                        importance = NotificationManager.IMPORTANCE_HIGH
-//                    )
-//                }
-//                startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val notifManager =
+                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    notifManager.createNotificationChannelIfNotExist(
+                        channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
+                        channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
+                        importance = NotificationManager.IMPORTANCE_HIGH
+                    )
+                }
+                startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
 //                if (tripData.value.isNotEmpty()) handleTripEvent(
 //                    trip = tripData.value.last(),
 //                    context = applicationContext

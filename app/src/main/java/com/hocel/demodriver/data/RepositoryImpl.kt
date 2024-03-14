@@ -3,6 +3,7 @@ package com.hocel.demodriver.data
 import android.util.Log
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
+import com.hocel.demodriver.model.Rider
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants.APP_ID
@@ -14,7 +15,7 @@ import io.realm.kotlin.mongodb.App
 import io.realm.kotlin.mongodb.annotations.ExperimentalFlexibleSyncApi
 import io.realm.kotlin.mongodb.ext.subscribe
 import io.realm.kotlin.mongodb.sync.SyncConfiguration
-import io.realm.kotlin.notifications.ResultsChange
+import io.realm.kotlin.mongodb.sync.WaitForSync
 import io.realm.kotlin.types.RealmInstant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,11 +40,12 @@ object RepositoryImpl : Repository {
         if (user != null) {
             val config = SyncConfiguration.Builder(
                 user,
-                setOf(Driver::class, Trip::class)
+                setOf(Driver::class, Trip::class, Rider::class)
             )
                 .initialSubscriptions(rerunOnOpen = true) { sub ->
                     add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user.id)))
                     add(query = sub.query<Trip>(query = "_id == $0", ObjectId(user.id)))
+                    add(query = sub.query<Rider>(query = "_id == $0", ObjectId(user.id)))
                 }
                 .log(LogLevel.ALL)
                 .build()
@@ -70,6 +72,26 @@ object RepositoryImpl : Repository {
                 }
             }
 
+        }
+    }
+
+    @OptIn(ExperimentalFlexibleSyncApi::class)
+    suspend fun getRider() {
+        val queriedRider =
+            realm.query<Rider>(query = "_id == $0", ObjectId("65f1aaa1b6a9c7df1c00c4a2"))
+                .find()
+                .subscribe("Rider", mode = WaitForSync.ALWAYS)
+                .first()
+        realm.write {
+            try {
+                Log.d("Rider", "AvRider: ${queriedRider.name}")
+                val rider = queriedRider.apply {
+                    name = "new name"
+                }
+                copyToRealm(rider)
+            } catch (e: Exception) {
+                Log.d("Rider", e.message.toString())
+            }
         }
     }
 
@@ -100,40 +122,28 @@ object RepositoryImpl : Repository {
             realm.write {
                 val queriedTrip =
                     query<Trip>(query = "_id == $0", tripId)
-                        .first()
                         .find()
-                if (queriedTrip != null) {
-                    queriedTrip.status = action
-                    if (action == TripStatus.Accepted) queriedTrip.driverId = user.id
-                } else {
-                    Log.d("MongoRepository", "Queried Driver does not exist.")
-                }
+                        .first()
+                queriedTrip.status = action
+                if (action == TripStatus.Accepted) queriedTrip.driverId = user.id
                 val queriedDriver =
                     query<Driver>(query = "_id == $0", ObjectId(user.id))
-                        .first()
                         .find()
-                if (queriedDriver != null) {
+                        .first()
+                run {
                     when (action) {
                         TripStatus.Accepted -> queriedDriver.currentTripId = tripId.toHexString()
                         TripStatus.Canceled, TripStatus.Closed -> {
-                            queriedDriver.currentTripId = null
-                            queriedDriver.tripRequestId = null
+                            queriedDriver.currentTripId = ""
+                            queriedDriver.tripRequestId = ""
                         }
 
                         else -> Unit
                     }
                     if (action == TripStatus.Accepted) queriedDriver.currentTripId =
                         tripId.toHexString() else Unit
-                } else {
-                    Log.d("MongoRepository", "Queried Driver does not exist.")
                 }
             }
-        }
-    }
-
-    override suspend fun readIncomingTrip(): Flow<List<Trip>> {
-        return realm.query<Trip>().find().asFlow().map {
-            it.list
         }
     }
 
@@ -142,13 +152,9 @@ object RepositoryImpl : Repository {
             realm.write {
                 val queriedDriver =
                     query<Driver>(query = "_id == $0", ObjectId(user.id))
-                        .first()
                         .find()
-                if (queriedDriver != null) {
-                    queriedDriver.status = status
-                } else {
-                    Log.d("MongoRepository", "Queried Driver does not exist.")
-                }
+                        .first()
+                queriedDriver.status = status
             }
         }
     }
@@ -158,21 +164,19 @@ object RepositoryImpl : Repository {
             realm.write {
                 val queriedDriver =
                     query<Driver>(query = "_id == $0", ObjectId(user.id))
-                        .first()
                         .find()
-                if (queriedDriver != null) {
+                        .first()
+                run {
                     queriedDriver.driverLocation = "($lat , $lng)"
                     queriedDriver.lastTracking = RealmInstant.now()
-                } else {
-                    Log.d("MongoRepository", "Queried Driver does not exist.")
                 }
             }
         }
     }
 
     @OptIn(ExperimentalFlexibleSyncApi::class)
-    override suspend fun getTripById(tripId: String): Trip {
+    override suspend fun getTripById(tripId: String): Flow<Trip?> {
         return realm.query<Trip>(query = "_id == $0", ObjectId(tripId))
-            .subscribe("uuu").first()
+            .subscribe("Trip").first().asFlow().map { it.obj }
     }
 }

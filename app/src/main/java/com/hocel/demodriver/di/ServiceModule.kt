@@ -38,7 +38,7 @@ object ServiceModule {
     ) = NotificationCompat.Builder(app, Constants.TRACKING_NOTIFICATION_CHANNEL_ID)
         .setAutoCancel(false)
         .setOngoing(true)
-        .setSmallIcon(R.mipmap.ic_logo)
+        .setSmallIcon(R.mipmap.ic_launcher)
         .setContentTitle("Status")
         .setContentText("You are on service")
         .setContentIntent(pendingIntent)
