@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
+import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
@@ -37,12 +38,11 @@ class MyService : Service() {
     @Inject
     lateinit var scope: CoroutineScope
 
-    private var tripData = MutableStateFlow(emptyList<Trip>())
-
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
-        RepositoryImpl.configureCollections()
         super.onCreate()
+        RepositoryImpl.configureCollections()
+        startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -53,31 +53,29 @@ class MyService : Service() {
     @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         scope.launch {
-//            RepositoryImpl.readIncomingTrip().collect {
-//                tripData.emit(it.filter { trip ->
-//                    if (trip.status == TripStatus.Pending) {
-//                        true
-//                    } else if (trip.status != TripStatus.Pending && trip.driverId == RepositoryImpl.user?.id) {
-//                        true
-//                    } else {
-//                        false
-//                    }
-//                })
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    val notifManager =
-                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                    notifManager.createNotificationChannelIfNotExist(
-                        channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
-                        channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
-                        importance = NotificationManager.IMPORTANCE_HIGH
-                    )
+            RepositoryImpl.getUserData().collect { user ->
+                user?.let {
+                    if (user.tripRequestId.isNotEmpty()) {
+                        if (user.currentTripId != user.tripRequestId) {
+                            RepositoryImpl.getTripById(user.tripRequestId).collect { trip ->
+                                trip?.let {
+                                    handleTripEvent(it, applicationContext)
+                                }
+                            }
+                        }
+                    }
                 }
-                startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
-//                if (tripData.value.isNotEmpty()) handleTripEvent(
-//                    trip = tripData.value.last(),
-//                    context = applicationContext
-//                )
-//            }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val notifManager =
+                    getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notifManager.createNotificationChannelIfNotExist(
+                    channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
+                    channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
+                    importance = NotificationManager.IMPORTANCE_HIGH
+                )
+            }
+            startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
         }
 
         return START_STICKY

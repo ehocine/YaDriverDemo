@@ -33,7 +33,6 @@ object RepositoryImpl : Repository {
     fun initialize() {
         configureCollections()
         createDriver()
-        //insertTrip()
     }
 
     override fun configureCollections() {
@@ -50,48 +49,6 @@ object RepositoryImpl : Repository {
                 .log(LogLevel.ALL)
                 .build()
             realm = Realm.open(config)
-        }
-    }
-
-    fun insertTrip() {
-        val trip = Trip().apply {
-            client = "Hakim"
-            pickUpAddress = "Sidi Yahia , Said hamdin"
-            dropOffAddress = "Boulveard Didouche  Mourad , Alger centre"
-            createdAt = RealmInstant.now()
-            status = TripStatus.Pending
-        }
-        if (user != null) {
-            CoroutineScope(Dispatchers.IO).launch {
-                realm.write {
-                    try {
-                        copyToRealm(trip)
-                    } catch (e: Exception) {
-                        Log.d("MongoRepository", e.message.toString())
-                    }
-                }
-            }
-
-        }
-    }
-
-    @OptIn(ExperimentalFlexibleSyncApi::class)
-    suspend fun getRider() {
-        val queriedRider =
-            realm.query<Rider>(query = "_id == $0", ObjectId("65f1aaa1b6a9c7df1c00c4a2"))
-                .find()
-                .subscribe("Rider", mode = WaitForSync.ALWAYS)
-                .first()
-        realm.write {
-            try {
-                Log.d("Rider", "AvRider: ${queriedRider.name}")
-                val rider = queriedRider.apply {
-                    name = "new name"
-                }
-                copyToRealm(rider)
-            } catch (e: Exception) {
-                Log.d("Rider", e.message.toString())
-            }
         }
     }
 
@@ -177,6 +134,6 @@ object RepositoryImpl : Repository {
     @OptIn(ExperimentalFlexibleSyncApi::class)
     override suspend fun getTripById(tripId: String): Flow<Trip?> {
         return realm.query<Trip>(query = "_id == $0", ObjectId(tripId))
-            .subscribe("Trip").first().asFlow().map { it.obj }
+            .subscribe("Trip", updateExisting = true).first().asFlow().map { it.obj }
     }
 }

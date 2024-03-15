@@ -18,6 +18,7 @@ import com.hocel.demodriver.services.backgroundService.ServiceManager
 import com.hocel.demodriver.services.tracking.TrackingServiceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -54,6 +55,7 @@ class HomeViewModel @Inject constructor(
         serviceManager.startService()
         startLocationUpdate()
         viewModelScope.launch {
+            delay(300)
             RepositoryImpl.getUserData().collect { user ->
                 user?.let {
                     userData.emit(user)

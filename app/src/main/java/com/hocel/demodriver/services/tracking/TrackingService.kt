@@ -13,6 +13,7 @@ import com.hocel.demodriver.util.Constants
 import com.hocel.demodriver.util.createNotificationChannelIfNotExist
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -59,7 +60,8 @@ class TrackingService : LifecycleService() {
     private fun sendData(location: Location?) {
         location?.let {
             scope.launch {
-                //RepositoryImpl.sendLocation(lat = it.latitude, lng = it.longitude)
+                delay(300)
+                RepositoryImpl.sendLocation(lat = it.latitude, lng = it.longitude)
             }
         }
     }
