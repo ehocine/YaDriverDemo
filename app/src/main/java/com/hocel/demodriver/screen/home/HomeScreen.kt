@@ -23,7 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsFixed
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.AttachMoney
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
@@ -33,10 +35,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,10 +72,12 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.hocel.demodriver.R
+import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
+import com.hocel.demodriver.util.copyToClipboard
 import com.stevdza.san.demodriver.ui.theme.yassirPurple
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -86,10 +93,11 @@ fun HomeScreen(
     tripFlowAction: (tripId: ObjectId, action: TripStatus) -> Unit
 ) {
     val user by viewModel.userData.collectAsState()
-    var showBottomSheet by remember { mutableStateOf(false) }
+    var showTripFlowSheet by remember { mutableStateOf(false) }
+    var showProfileSheet by remember { mutableStateOf(false) }
     val trip by viewModel.currentTrip
     LaunchedEffect(key1 = trip, key2 = user.status) {
-        showBottomSheet = if (user.status == DriverStatus.Online) {
+        showTripFlowSheet = if (user.status == DriverStatus.Online) {
             if (trip.status == TripStatus.Pending) {
                 true
             } else {
@@ -107,16 +115,16 @@ fun HomeScreen(
     val tripAction by viewModel.tripAction
 
     val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(
+    val tripFlowSheetState = rememberModalBottomSheetState(
         confirmValueChange = { false }
     )
     val currentLocation = viewModel.currentLocation.collectAsState()
 
     Scaffold(
         content = {
-            if (showBottomSheet) {
+            if (showTripFlowSheet) {
                 ModalBottomSheet(
-                    sheetState = sheetState,
+                    sheetState = tripFlowSheetState,
                     onDismissRequest = { },
                     dragHandle = null
                 ) {
@@ -189,9 +197,9 @@ fun HomeScreen(
                                             viewModel.switchStatus(DriverStatus.Online)
                                             tripFlowAction(it, TripStatus.Closed)
                                             scope.launch {
-                                                sheetState.hide()
+                                                tripFlowSheetState.hide()
                                                 delay(100)
-                                                showBottomSheet = false
+                                                showTripFlowSheet = false
                                             }
                                         }
                                     )
@@ -209,11 +217,11 @@ fun HomeScreen(
                                 }
 
                                 TripFlowAction.Closed -> {
-                                    showBottomSheet = false
+                                    showTripFlowSheet = false
                                 }
 
                                 else -> {
-                                    showBottomSheet = false
+                                    showTripFlowSheet = false
                                 }
                             }
                         },
@@ -224,13 +232,28 @@ fun HomeScreen(
                             )
                             viewModel.declineTrip()
                             scope.launch {
-                                sheetState.hide()
+                                tripFlowSheetState.hide()
                                 delay(100)
-                                showBottomSheet = false
+                                showTripFlowSheet = false
                             }
                         }
                     )
 
+
+                }
+            }
+            if (showProfileSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showProfileSheet = false },
+                    dragHandle = null
+                ) {
+                    ProfileSheet(
+                        driver = user,
+                        updateProfileInfo = { name, email ->
+                            viewModel.updateProfileInfo(name, email)
+                            showProfileSheet = false
+                        }
+                    )
                 }
             }
             HomeContent(
@@ -238,6 +261,9 @@ fun HomeScreen(
                 driverStatus = user.status,
                 location = currentLocation.value,
                 handlePosition = viewModel::getCurrentPosition,
+                onProfileClicked = {
+                    showProfileSheet = true
+                },
                 onSwitchClicked = onSwitchClicked
             )
         }
@@ -250,6 +276,7 @@ private fun HomeContent(
     driverStatus: DriverStatus,
     location: LatLng,
     handlePosition: () -> Unit,
+    onProfileClicked: () -> Unit,
     onSwitchClicked: (DriverStatus) -> Unit
 ) {
     val context = LocalContext.current
@@ -349,6 +376,28 @@ private fun HomeContent(
                         )
                     }
                 }
+                Box(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.BottomStart)
+                        .background(color = Color.Transparent, shape = CircleShape)
+                        .shadow(elevation = 15.dp, shape = CircleShape)
+                        .clickable {
+                            onProfileClicked()
+                        }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(color = Color.White)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            modifier = Modifier.align(Alignment.Center),
+                            contentDescription = null
+                        )
+                    }
+                }
 
                 if (driverStatus == DriverStatus.Offline) {
                     Box(
@@ -426,6 +475,137 @@ private fun SheetContent(
             Spacer(modifier = Modifier.padding(10.dp))
         }
         content()
+    }
+}
+
+@Composable
+private fun ProfileSheet(
+    driver: Driver,
+    updateProfileInfo: (name: String, email: String) -> Unit
+) {
+    val context = LocalContext.current
+    var driverName by remember { mutableStateOf("") }
+    var driverEmail by remember { mutableStateOf("") }
+    var driverId by remember { mutableStateOf("") }
+    var nameChanged by remember { mutableStateOf(false) }
+    var emailChanged by remember { mutableStateOf(false) }
+
+    LaunchedEffect(key1 = driver) {
+        driverName = driver.name
+        driverEmail = driver.email
+        driverId = driver._id.toHexString()
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(10.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .wrapContentHeight()
+                .padding(horizontal = 8.dp)
+        ) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Driver info",
+                fontSize = 20.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = driverName,
+                onValueChange = {
+                    driverName = it
+                    nameChanged = it != driver.name
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = yassirPurple,
+                    unfocusedBorderColor = yassirPurple
+                ),
+                label = {
+                    Text(
+                        text = "Name",
+                        color = yassirPurple
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = driverEmail,
+                onValueChange = {
+                    driverEmail = it
+                    emailChanged = it != driver.email
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = yassirPurple,
+                    unfocusedBorderColor = yassirPurple,
+
+                ),
+                label = {
+                    Text(
+                        text = "Email",
+                        color = yassirPurple
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = driverId,
+                onValueChange = { },
+                label = {
+                    Text(
+                        text = "Driver ID",
+                        color = yassirPurple
+                    )
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = yassirPurple,
+                    unfocusedBorderColor = yassirPurple,
+
+                    ),
+                readOnly = true,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                trailingIcon = {
+                    IconButton(onClick = {
+                        copyToClipboard(context, driverId)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            tint = Color.Black
+                        )
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    updateProfileInfo(driverName, driverEmail)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors().copy(containerColor = yassirPurple),
+                enabled = nameChanged || emailChanged,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = "Update info",
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 

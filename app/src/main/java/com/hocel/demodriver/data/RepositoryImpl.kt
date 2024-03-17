@@ -136,4 +136,19 @@ object RepositoryImpl : Repository {
         return realm.query<Trip>(query = "_id == $0", ObjectId(tripId))
             .subscribe("Trip", updateExisting = true).first().asFlow().map { it.obj }
     }
+
+    override suspend fun updateProfileInfo(name: String, email: String) {
+        if (user != null) {
+            realm.write {
+                val queriedDriver =
+                    query<Driver>(query = "_id == $0", ObjectId(user.id))
+                        .find()
+                        .first()
+                run {
+                    queriedDriver.name = name
+                    queriedDriver.email = email
+                }
+            }
+        }
+    }
 }

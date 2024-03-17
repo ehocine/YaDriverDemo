@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
 import javax.inject.Inject
@@ -56,34 +57,32 @@ class HomeViewModel @Inject constructor(
         startLocationUpdate()
         viewModelScope.launch {
             delay(300)
-            RepositoryImpl.getUserData().collect { user ->
-                user?.let {
-                    userData.emit(user)
-                    if (user.tripRequestId.isNotEmpty()) {
-                        if (user.currentTripId != user.tripRequestId) {
-                            RepositoryImpl.getTripById(user.tripRequestId).collect { trip ->
-                                trip?.let {
-                                    currentTrip.value = it
-                                    handleTripEvent(it)
-                                }
+            RepositoryImpl.getUserData()
+                .collect { user ->
+                    user?.let {
+                        userData.emit(user)
+                        viewModelScope.launch {
+                            if (user.tripRequestId.isNotEmpty()) {
+                                getUserTrip(user.tripRequestId)
                             }
+                            if (user.currentTripId.isNotEmpty() && user.currentTripId != user.tripRequestId) {
+                                getUserTrip(user.currentTripId)
+                            }
+                            if (user.status == DriverStatus.Online) trackingService.startTracking()
                         }
                     }
-                    if (user.currentTripId.isNotEmpty()) {
-                        RepositoryImpl.getTripById(user.currentTripId).collect { trip ->
-                            trip?.let {
-                                currentTrip.value = it
-                                handleTripEvent(it)
-                            }
-                        }
-                    }
-                    if (user.status == DriverStatus.Online) trackingService.startTracking()
+                }
+        }
+    }
+
+    private suspend fun getUserTrip(tripId: String) {
+        RepositoryImpl.getTripById(tripId)
+            .collect { trip ->
+                trip?.let {
+                    currentTrip.value = it
+                    handleTripEvent(it)
                 }
             }
-        }
-        viewModelScope.launch {
-            //RepositoryImpl.getRider()
-        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -172,6 +171,12 @@ class HomeViewModel @Inject constructor(
             _locationProvider.currentLocation()?.let {
                 _currentLocation.value = it
             }
+        }
+    }
+
+    fun updateProfileInfo(name: String, email: String) {
+        viewModelScope.launch {
+            RepositoryImpl.updateProfileInfo(name, email)
         }
     }
 }

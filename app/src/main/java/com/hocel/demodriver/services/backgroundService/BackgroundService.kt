@@ -12,7 +12,6 @@ import androidx.core.app.NotificationCompat
 import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
-import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
@@ -23,12 +22,11 @@ import com.hocel.demodriver.util.isAppInForeground
 import com.hocel.demodriver.util.pushRequestNotification
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class MyService : Service() {
+class BackgroundService : Service() {
     @Inject
     lateinit var baseNotificationBuilder: NotificationCompat.Builder
 
@@ -57,11 +55,7 @@ class MyService : Service() {
                 user?.let {
                     if (user.tripRequestId.isNotEmpty()) {
                         if (user.currentTripId != user.tripRequestId) {
-                            RepositoryImpl.getTripById(user.tripRequestId).collect { trip ->
-                                trip?.let {
-                                    handleTripEvent(it, applicationContext)
-                                }
-                            }
+                            getUserTrip(user.tripRequestId)
                         }
                     }
                 }
@@ -81,6 +75,15 @@ class MyService : Service() {
         return START_STICKY
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    private suspend fun getUserTrip(tripId: String) {
+        RepositoryImpl.getTripById(tripId)
+            .collect { trip ->
+                trip?.let {
+                    handleTripEvent(it, applicationContext)
+                }
+            }
+    }
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleTripEvent(trip: Trip, context: Context) {
         when (trip.status) {

@@ -16,26 +16,26 @@ class ServiceManager @Inject constructor(
 ) {
 
     fun startService() {
-        if (application.isServiceRunningInForeground(MyService::class.java)) return
+        if (application.isServiceRunningInForeground(BackgroundService::class.java)) return
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Handler(Looper.getMainLooper()).post {
                 ContextCompat.startForegroundService(
                     application.applicationContext,
-                    Intent(application.applicationContext, MyService::class.java)
+                    Intent(application.applicationContext, BackgroundService::class.java)
                 )
             }
         } else {
             ContextCompat.startForegroundService(
                 application.applicationContext,
-                Intent(application.applicationContext, MyService::class.java)
+                Intent(application.applicationContext, BackgroundService::class.java)
             )
         }
     }
 
     fun stopService() {
         application.applicationContext.stopService(
-            Intent(application.applicationContext, MyService::class.java)
+            Intent(application.applicationContext, BackgroundService::class.java)
         )
     }
 }

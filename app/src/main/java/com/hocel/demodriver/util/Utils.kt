@@ -5,9 +5,12 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -45,6 +48,7 @@ fun Context.isAppInForeground(appPackageName: String): Boolean {
     }
     return false
 }
+
 @RequiresApi(Build.VERSION_CODES.O)
 fun NotificationManager.createNotificationChannelIfNotExist(
     channelId: String,
@@ -62,6 +66,7 @@ fun NotificationManager.createNotificationChannelIfNotExist(
         this.createNotificationChannel(channel)
     }
 }
+
 @RequiresApi(Build.VERSION_CODES.O)
 fun pushRequestNotification(
     context: Context,
@@ -115,4 +120,15 @@ fun NotificationManager.createPushRequestNotification(
 
         this.createNotificationChannel(channel)
     }
+}
+
+fun String.toast(context: Context, length: Int = Toast.LENGTH_SHORT) =
+    Toast.makeText(context, this, length).show()
+
+fun copyToClipboard(context: Context, text: String) {
+    val clipboardManager =
+        context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    val clipData = ClipData.newPlainText("text", text)
+    clipboardManager.setPrimaryClip(clipData)
+    "Copied to clipboard".toast(context, Toast.LENGTH_SHORT)
 }
