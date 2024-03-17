@@ -1,6 +1,7 @@
 package com.hocel.demodriver.screen.home
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -62,10 +63,10 @@ class HomeViewModel @Inject constructor(
                     user?.let {
                         userData.emit(user)
                         viewModelScope.launch {
-                            if (user.tripRequestId.isNotEmpty()) {
+                            if (user.tripRequestId.isNotBlank()) {
                                 getUserTrip(user.tripRequestId)
                             }
-                            if (user.currentTripId.isNotEmpty() && user.currentTripId != user.tripRequestId) {
+                            if (user.currentTripId.isNotBlank() && user.currentTripId != user.tripRequestId) {
                                 getUserTrip(user.currentTripId)
                             }
                             if (user.status == DriverStatus.Online) trackingService.startTracking()
@@ -89,6 +90,7 @@ class HomeViewModel @Inject constructor(
     private fun handleTripEvent(trip: Trip) {
         when (trip.status) {
             TripStatus.Pending -> {
+                Log.d("EventTime", "Event ViewModel: in: ${System.currentTimeMillis()}")
                 if (userData.value.status == DriverStatus.Online) {
                     ringtoneManager.startRinging()
                     tripAction.value = TripFlowAction.Pending

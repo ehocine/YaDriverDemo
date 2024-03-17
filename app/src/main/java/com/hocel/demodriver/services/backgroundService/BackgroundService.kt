@@ -53,7 +53,7 @@ class BackgroundService : Service() {
         scope.launch {
             RepositoryImpl.getUserData().collect { user ->
                 user?.let {
-                    if (user.tripRequestId.isNotEmpty()) {
+                    if (user.tripRequestId.isNotBlank()) {
                         if (user.currentTripId != user.tripRequestId) {
                             getUserTrip(user.tripRequestId)
                         }

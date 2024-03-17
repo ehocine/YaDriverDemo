@@ -21,6 +21,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
@@ -46,7 +47,7 @@ object RepositoryImpl : Repository {
                     add(query = sub.query<Trip>(query = "_id == $0", ObjectId(user.id)))
                     add(query = sub.query<Rider>(query = "_id == $0", ObjectId(user.id)))
                 }
-                .log(LogLevel.ALL)
+                //  .log(LogLevel.ALL)
                 .build()
             realm = Realm.open(config)
         }
@@ -133,8 +134,10 @@ object RepositoryImpl : Repository {
 
     @OptIn(ExperimentalFlexibleSyncApi::class)
     override suspend fun getTripById(tripId: String): Flow<Trip?> {
-        return realm.query<Trip>(query = "_id == $0", ObjectId(tripId))
-            .subscribe("Trip", updateExisting = true).first().asFlow().map { it.obj }
+        Log.d("EventTime", "Event Repo: in: ${System.currentTimeMillis()}")
+        val trip = realm.query<Trip>(query = "_id == $0", ObjectId(tripId))
+            .subscribe("Trip", updateExisting = true).firstOrNull()?.asFlow()?.map { it.obj }
+        return trip ?: flowOf(null)
     }
 
     override suspend fun updateProfileInfo(name: String, email: String) {
