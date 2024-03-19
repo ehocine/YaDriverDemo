@@ -9,11 +9,12 @@ class Trip : RealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId.invoke()
     var client: String = ""
-    var pickUpAddress: String = ""
-    var dropOffAddress: String = ""
-    var createdAt: RealmInstant = RealmInstant.now()
-    var driverId: String? = null
+    var pickUAd: String = ""
+    var dropOAd: String = ""
+    var crAt: RealmInstant = RealmInstant.now()
+    var dID: String? = null
     private var state: String = TripStatus.Pending.status
+
     var status: TripStatus
         get() {
             return try {

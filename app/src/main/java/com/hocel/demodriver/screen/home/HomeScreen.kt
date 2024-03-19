@@ -41,7 +41,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -90,7 +89,7 @@ import org.mongodb.kbson.ObjectId
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSwitchClicked: (DriverStatus) -> Unit,
-    tripFlowAction: (tripId: ObjectId, action: TripStatus) -> Unit
+    tripFlowAction: (trip: Trip, driver: Driver, action: TripStatus) -> Unit
 ) {
     val user by viewModel.userData.collectAsState()
     var showTripFlowSheet by remember { mutableStateOf(false) }
@@ -101,7 +100,7 @@ fun HomeScreen(
             if (trip.status == TripStatus.Pending) {
                 true
             } else {
-                if (trip.driverId == user._id.toHexString()) {
+                if (trip.dID == user._id.toHexString()) {
                     trip.status != TripStatus.Closed || trip.status != TripStatus.Canceled
                 } else {
                     false
@@ -138,7 +137,7 @@ fun HomeScreen(
                                         sheetTitle = "New trip request",
                                         actionButtonText = "Accept trip",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.Accepted)
+                                            tripFlowAction(trip, user, TripStatus.Accepted)
                                         }
                                     )
                                 }
@@ -149,7 +148,7 @@ fun HomeScreen(
                                         sheetTitle = "Go to your client",
                                         actionButtonText = "Go to pickup",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.GoToPickUp)
+                                            tripFlowAction(trip, user, TripStatus.GoToPickUp)
                                         }
                                     )
                                 }
@@ -160,7 +159,7 @@ fun HomeScreen(
                                         sheetTitle = "Going to  your client",
                                         actionButtonText = "Arrived to pickup",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.ArrivedToPickUp)
+                                            tripFlowAction(trip, user, TripStatus.ArrivedToPickUp)
                                         }
                                     )
                                 }
@@ -171,7 +170,7 @@ fun HomeScreen(
                                         sheetTitle = "Start the trip",
                                         actionButtonText = "Start trip",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.StartTrip)
+                                            tripFlowAction(trip, user, TripStatus.StartTrip)
                                         }
                                     )
                                 }
@@ -183,7 +182,7 @@ fun HomeScreen(
                                         actionButtonText = "End trip",
                                         tripAction = {
                                             viewModel.switchStatus(DriverStatus.InTrip)
-                                            tripFlowAction(it, TripStatus.Finished)
+                                            tripFlowAction(trip, user, TripStatus.Finished)
                                         }
                                     )
                                 }
@@ -195,7 +194,7 @@ fun HomeScreen(
                                         actionButtonText = "Close",
                                         tripAction = {
                                             viewModel.switchStatus(DriverStatus.Online)
-                                            tripFlowAction(it, TripStatus.Closed)
+                                            tripFlowAction(trip, user, TripStatus.Closed)
                                             scope.launch {
                                                 tripFlowSheetState.hide()
                                                 delay(100)
@@ -211,7 +210,7 @@ fun HomeScreen(
                                         sheetTitle = "Trip canceled",
                                         actionButtonText = "Exit",
                                         tripAction = {
-                                            tripFlowAction(it, TripStatus.Canceled)
+                                            tripFlowAction(trip, user, TripStatus.Canceled)
                                         }
                                     )
                                 }
@@ -227,8 +226,7 @@ fun HomeScreen(
                         },
                         onCloseClicked = {
                             if (tripAction == TripFlowAction.Accepted) tripFlowAction(
-                                trip._id,
-                                TripStatus.Canceled
+                                trip, user, TripStatus.Canceled
                             )
                             viewModel.declineTrip()
                             scope.launch {
@@ -250,7 +248,7 @@ fun HomeScreen(
                     ProfileSheet(
                         driver = user,
                         updateProfileInfo = { name, email ->
-                            viewModel.updateProfileInfo(name, email)
+                            viewModel.updateProfileInfo(user, name, email)
                             showProfileSheet = false
                         }
                     )
@@ -545,7 +543,7 @@ private fun ProfileSheet(
                     focusedBorderColor = yassirPurple,
                     unfocusedBorderColor = yassirPurple,
 
-                ),
+                    ),
                 label = {
                     Text(
                         text = "Email",
@@ -646,8 +644,8 @@ fun TripFlowSheet(
 
         BulletedList(
             listOf(
-                trip.pickUpAddress,
-                trip.dropOffAddress
+                trip.pickUAd,
+                trip.dropOAd
             )
         )
         Spacer(modifier = Modifier.height(10.dp))

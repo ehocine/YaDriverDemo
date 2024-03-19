@@ -12,9 +12,9 @@ interface Repository {
     fun configureCollections()
     fun createDriver()
     suspend fun getUserData(): Flow<Driver?>
-    suspend fun tripAction(tripId: ObjectId, action: TripStatus)
-    suspend fun switchDriverStatus(status: DriverStatus)
+    suspend fun tripAction(trip: Trip, driver: Driver, action: TripStatus)
+    suspend fun switchDriverStatus(driver: Driver, nStatus: DriverStatus)
     suspend fun sendLocation(lat: Double, lng: Double)
     suspend fun getTripById(tripId: String): Flow<Trip?>
-    suspend fun updateProfileInfo(name: String, email: String)
+    suspend fun updateProfileInfo(driver: Driver, nName: String, nEmail: String)
 }

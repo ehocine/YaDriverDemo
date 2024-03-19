@@ -8,14 +8,13 @@ import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants.APP_ID
 import io.realm.kotlin.Realm
+import io.realm.kotlin.UpdatePolicy
 import io.realm.kotlin.ext.asFlow
 import io.realm.kotlin.ext.query
-import io.realm.kotlin.log.LogLevel
 import io.realm.kotlin.mongodb.App
 import io.realm.kotlin.mongodb.annotations.ExperimentalFlexibleSyncApi
 import io.realm.kotlin.mongodb.ext.subscribe
 import io.realm.kotlin.mongodb.sync.SyncConfiguration
-import io.realm.kotlin.mongodb.sync.WaitForSync
 import io.realm.kotlin.types.RealmInstant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -75,44 +74,46 @@ object RepositoryImpl : Repository {
             .find().firstOrNull()?.asFlow()?.map { it.obj } ?: flow { null }
     }
 
-    override suspend fun tripAction(tripId: ObjectId, action: TripStatus) {
+    override suspend fun tripAction(trip: Trip, driver: Driver, action: TripStatus) {
         if (user != null) {
             realm.write {
-                val queriedTrip =
-                    query<Trip>(query = "_id == $0", tripId)
-                        .find()
-                        .first()
-                queriedTrip.status = action
-                if (action == TripStatus.Accepted) queriedTrip.driverId = user.id
-                val queriedDriver =
-                    query<Driver>(query = "_id == $0", ObjectId(user.id))
-                        .find()
-                        .first()
-                run {
-                    when (action) {
-                        TripStatus.Accepted -> queriedDriver.currentTripId = tripId.toHexString()
-                        TripStatus.Canceled, TripStatus.Closed -> {
-                            queriedDriver.currentTripId = ""
-                            queriedDriver.tripRequestId = ""
+                try {
+                    findLatest(trip)?.let {
+                        it.apply {
+                            status = action
+                            if (action == TripStatus.Accepted) dID = user.id
                         }
-
-                        else -> Unit
                     }
-                    if (action == TripStatus.Accepted) queriedDriver.currentTripId =
-                        tripId.toHexString() else Unit
+                    findLatest(driver)?.let {
+                        it.apply {
+                            when (action) {
+                                TripStatus.Accepted -> it.curTiD = trip._id.toHexString()
+                                TripStatus.Canceled, TripStatus.Closed -> {
+                                    it.curTiD = ""
+                                    it.trRiD = ""
+                                }
+
+                                else -> Unit
+                            }
+                            if (action == TripStatus.Accepted) it.curTiD =
+                                trip._id.toHexString() else Unit
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }
     }
 
-    override suspend fun switchDriverStatus(status: DriverStatus) {
+    override suspend fun switchDriverStatus(driver: Driver, nStatus: DriverStatus) {
         if (user != null) {
             realm.write {
-                val queriedDriver =
-                    query<Driver>(query = "_id == $0", ObjectId(user.id))
-                        .find()
-                        .first()
-                queriedDriver.status = status
+                findLatest(driver)?.let {
+                    it.apply {
+                        status = nStatus
+                    }
+                }
             }
         }
     }
@@ -125,8 +126,8 @@ object RepositoryImpl : Repository {
                         .find()
                         .first()
                 run {
-                    queriedDriver.driverLocation = "($lat , $lng)"
-                    queriedDriver.lastTracking = RealmInstant.now()
+                    queriedDriver.dLoca = "($lat , $lng)"
+                    queriedDriver.lastTrac = RealmInstant.now()
                 }
             }
         }
@@ -140,16 +141,14 @@ object RepositoryImpl : Repository {
         return trip ?: flowOf(null)
     }
 
-    override suspend fun updateProfileInfo(name: String, email: String) {
+    override suspend fun updateProfileInfo(driver: Driver, nName: String, nEmail: String) {
         if (user != null) {
             realm.write {
-                val queriedDriver =
-                    query<Driver>(query = "_id == $0", ObjectId(user.id))
-                        .find()
-                        .first()
-                run {
-                    queriedDriver.name = name
-                    queriedDriver.email = email
+                findLatest(driver)?.let {
+                    it.apply {
+                        name = nName
+                        email = nEmail
+                    }
                 }
             }
         }

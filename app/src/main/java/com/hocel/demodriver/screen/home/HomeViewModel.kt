@@ -21,10 +21,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
-import org.mongodb.kbson.ObjectId
 import javax.inject.Inject
 
 
@@ -47,8 +44,8 @@ class HomeViewModel @Inject constructor(
     var userData = MutableStateFlow(Driver())
         private set
 
-    private val _currentLocation: MutableStateFlow<LatLng> = MutableStateFlow(LatLng(0.0, 0.0))
-    val currentLocation: StateFlow<LatLng> get() = _currentLocation
+    var currentLocation: MutableStateFlow<LatLng> = MutableStateFlow(LatLng(0.0, 0.0))
+        private set
 
     private var locationJob: Job? = null
 
@@ -63,11 +60,11 @@ class HomeViewModel @Inject constructor(
                     user?.let {
                         userData.emit(user)
                         viewModelScope.launch {
-                            if (user.tripRequestId.isNotBlank()) {
-                                getUserTrip(user.tripRequestId)
+                            if (user.trRiD.isNotBlank()) {
+                                getUserTrip(user.trRiD)
                             }
-                            if (user.currentTripId.isNotBlank() && user.currentTripId != user.tripRequestId) {
-                                getUserTrip(user.currentTripId)
+                            if (user.curTiD.isNotBlank() && user.curTiD != user.trRiD) {
+                                getUserTrip(user.curTiD)
                             }
                             if (user.status == DriverStatus.Online) trackingService.startTracking()
                         }
@@ -133,6 +130,8 @@ class HomeViewModel @Inject constructor(
                 tripAction.value = TripFlowAction.CancelTrip
                 currentTrip.value = trip
             }
+
+            else -> Unit
         }
     }
 
@@ -145,13 +144,13 @@ class HomeViewModel @Inject constructor(
                 serviceManager.stopService()
                 trackingService.stopTracking()
             }
-            RepositoryImpl.switchDriverStatus(status)
+            RepositoryImpl.switchDriverStatus(userData.value, status)
         }
     }
 
-    fun tripAction(tripId: ObjectId, action: TripStatus) {
+    fun tripAction(trip: Trip, driver: Driver, action: TripStatus) {
         viewModelScope.launch {
-            RepositoryImpl.tripAction(tripId, action)
+            RepositoryImpl.tripAction(trip, driver, action)
         }
     }
 
@@ -163,7 +162,7 @@ class HomeViewModel @Inject constructor(
         locationJob?.cancel()
         locationJob = viewModelScope.launch {
             _locationProvider.requestLocationUpdate {
-                _currentLocation.value = LatLng(it.latitude, it.longitude)
+                currentLocation.value = LatLng(it.latitude, it.longitude)
             }
         }
     }
@@ -171,14 +170,14 @@ class HomeViewModel @Inject constructor(
     fun getCurrentPosition() {
         viewModelScope.launch {
             _locationProvider.currentLocation()?.let {
-                _currentLocation.value = it
+                currentLocation.value = it
             }
         }
     }
 
-    fun updateProfileInfo(name: String, email: String) {
+    fun updateProfileInfo(driver: Driver, name: String, email: String) {
         viewModelScope.launch {
-            RepositoryImpl.updateProfileInfo(name, email)
+            RepositoryImpl.updateProfileInfo(driver, name, email)
         }
     }
 }

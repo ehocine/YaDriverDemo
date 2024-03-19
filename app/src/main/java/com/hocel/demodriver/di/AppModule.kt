@@ -22,6 +22,7 @@ class AppModule {
     fun provideCoroutineScope(): CoroutineScope {
         return CoroutineScope(Dispatchers.Default)
     }
+
     @Singleton
     @Provides
     fun provideRingtoneManager(application: Application, scope: CoroutineScope): RingtoneManager {

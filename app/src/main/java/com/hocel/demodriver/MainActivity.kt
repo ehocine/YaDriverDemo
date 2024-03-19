@@ -40,6 +40,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        realm.close()
+    }
 }
 
 private fun getStartDestination(): String {

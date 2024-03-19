@@ -10,10 +10,10 @@ class Driver : RealmObject {
     var _id: ObjectId = ObjectId.invoke()
     var name: String = ""
     var email: String = ""
-    var currentTripId: String = ""
-    var tripRequestId: String = ""
-    var driverLocation: String? = null
-    var lastTracking: RealmInstant? = null
+    var curTiD: String = ""
+    var trRiD: String = ""
+    var dLoca: String? = null
+    var lastTrac: RealmInstant? = null
     private var state: String = DriverStatus.Offline.status
     var status: DriverStatus
         get() {
