@@ -39,12 +39,16 @@ object RepositoryImpl : Repository {
         if (user != null) {
             val config = SyncConfiguration.Builder(
                 user,
-                setOf(Driver::class, Trip::class, Rider::class)
+                setOf(Driver::class, Trip::class)
             )
-                .initialSubscriptions(rerunOnOpen = true) { sub ->
+                .initialSubscriptions { sub ->
                     add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user.id)))
-                    add(query = sub.query<Trip>(query = "_id == $0", ObjectId(user.id)))
-                    add(query = sub.query<Rider>(query = "_id == $0", ObjectId(user.id)))
+                    add(query = sub.query<Trip>())
+                    // add(query = sub.query<Rider>(query = "_id == $0", ObjectId(user.id)))
+                }
+                .errorHandler { _, error ->
+                    Log.e("syncError", "syncError", error)
+
                 }
                 //  .log(LogLevel.ALL)
                 .build()

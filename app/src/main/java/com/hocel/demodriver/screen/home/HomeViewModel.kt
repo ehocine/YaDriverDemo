@@ -66,7 +66,7 @@ class HomeViewModel @Inject constructor(
                             if (user.curTiD.isNotBlank() && user.curTiD != user.trRiD) {
                                 getUserTrip(user.curTiD)
                             }
-                            if (user.status == DriverStatus.Online) trackingService.startTracking()
+                           // if (user.status == DriverStatus.Online) trackingService.startTracking()
                         }
                     }
                 }
@@ -139,7 +139,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (status == DriverStatus.Online) {
                 serviceManager.startService()
-                trackingService.startTracking()
+                //trackingService.startTracking()
             } else {
                 serviceManager.stopService()
                 trackingService.stopTracking()
