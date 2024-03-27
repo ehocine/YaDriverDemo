@@ -27,7 +27,7 @@ import org.mongodb.kbson.ObjectId
 
 object RepositoryImpl : Repository {
     private val app = App.create(APP_ID)
-    val user = app.currentUser
+    private val user = app.currentUser
     lateinit var realm: Realm
 
     fun initialize() {
@@ -44,13 +44,11 @@ object RepositoryImpl : Repository {
                 .initialSubscriptions { sub ->
                     add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user.id)))
                     add(query = sub.query<Trip>())
-                    // add(query = sub.query<Rider>(query = "_id == $0", ObjectId(user.id)))
                 }
                 .errorHandler { _, error ->
                     Log.e("syncError", "syncError", error)
 
                 }
-                //  .log(LogLevel.ALL)
                 .build()
             realm = Realm.open(config)
         }
