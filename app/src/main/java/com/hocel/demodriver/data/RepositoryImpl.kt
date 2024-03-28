@@ -3,12 +3,10 @@ package com.hocel.demodriver.data
 import android.util.Log
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
-import com.hocel.demodriver.model.Rider
 import com.hocel.demodriver.model.Trip
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants.APP_ID
 import io.realm.kotlin.Realm
-import io.realm.kotlin.UpdatePolicy
 import io.realm.kotlin.ext.asFlow
 import io.realm.kotlin.ext.query
 import io.realm.kotlin.mongodb.App
@@ -26,11 +24,13 @@ import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
 
 object RepositoryImpl : Repository {
-    private val app = App.create(APP_ID)
-    private val user = app.currentUser
+    val app = App.create(APP_ID)
+    var user = app.currentUser
     lateinit var realm: Realm
 
+
     fun initialize() {
+        Log.d("User", "$user")
         configureCollections()
         createDriver()
     }
@@ -38,11 +38,11 @@ object RepositoryImpl : Repository {
     override fun configureCollections() {
         if (user != null) {
             val config = SyncConfiguration.Builder(
-                user,
+                user!!,
                 setOf(Driver::class, Trip::class)
             )
                 .initialSubscriptions { sub ->
-                    add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user.id)))
+                    add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user!!.id)))
                     add(query = sub.query<Trip>())
                 }
                 .errorHandler { _, error ->
@@ -62,7 +62,7 @@ object RepositoryImpl : Repository {
             CoroutineScope(Dispatchers.IO).launch {
                 realm.write {
                     try {
-                        copyToRealm(driver.apply { _id = ObjectId(user.id) })
+                        copyToRealm(driver.apply { _id = ObjectId(user!!.id) })
                     } catch (e: Exception) {
                         Log.d("MongoRepository", e.message.toString())
                     }
@@ -72,7 +72,7 @@ object RepositoryImpl : Repository {
     }
 
     override suspend fun getUserData(): Flow<Driver?> {
-        return realm.query<Driver>(query = "_id == $0", ObjectId(user!!.id))
+        return realm.query<Driver>(query = "_id == $0", ObjectId(this.user!!.id))
             .find().firstOrNull()?.asFlow()?.map { it.obj } ?: flow { null }
     }
 
@@ -83,7 +83,7 @@ object RepositoryImpl : Repository {
                     findLatest(trip)?.let {
                         it.apply {
                             status = action
-                            if (action == TripStatus.Accepted) dID = user.id
+                            if (action == TripStatus.Accepted) dID = user!!.id
                         }
                     }
                     findLatest(driver)?.let {
@@ -124,7 +124,7 @@ object RepositoryImpl : Repository {
         if (user != null) {
             realm.write {
                 val queriedDriver =
-                    query<Driver>(query = "_id == $0", ObjectId(user.id))
+                    query<Driver>(query = "_id == $0", ObjectId(user!!.id))
                         .find()
                         .first()
                 run {

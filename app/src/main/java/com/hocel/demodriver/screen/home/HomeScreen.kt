@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -200,17 +201,6 @@ fun HomeScreen(
                                                 delay(100)
                                                 showTripFlowSheet = false
                                             }
-                                        }
-                                    )
-                                }
-
-                                TripFlowAction.CancelTrip -> {
-                                    TripFlowSheet(
-                                        trip = trip,
-                                        sheetTitle = "Trip canceled",
-                                        actionButtonText = "Exit",
-                                        tripAction = {
-                                            tripFlowAction(trip, user, TripStatus.Canceled)
                                         }
                                     )
                                 }
@@ -614,85 +604,87 @@ fun TripFlowSheet(
     actionButtonText: String,
     tripAction: (tripId: ObjectId) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .wrapContentHeight()
-            .padding(horizontal = 8.dp)
-    ) {
-        Text(
-            text = sheetTitle,
-            fontSize = 20.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.Bold
-        )
-
-        Text(
-            text = trip.client,
-            fontSize = 19.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Trajectory",
-            fontSize = 18.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.Medium,
-            style = typography.bodyMedium
-        )
-
-        BulletedList(
-            listOf(
-                trip.pickUAd,
-                trip.dropOAd
-            )
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxHeight(.5f)) {
+        Column(
+            modifier = Modifier
+                .weight(8f)
+                .padding(horizontal = 8.dp)
+        ) {
             Text(
-                text = "Price",
+                text = sheetTitle,
+                fontSize = 20.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = trip.client,
+                fontSize = 19.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Trajectory",
                 fontSize = 18.sp,
                 color = Color.Black,
-                fontWeight = FontWeight.Bold,
-                style = typography.labelLarge,
-                modifier = Modifier
-                    .weight(9f)
+                fontWeight = FontWeight.Medium,
+                style = typography.bodyMedium
             )
-            Icon(
-                Icons.Outlined.Info,
-                contentDescription = "Localized description",
-                tint = yassirPurple,
-                modifier = Modifier.size(20.dp)
+
+            BulletedList(
+                listOf(
+                    trip.pickUAd,
+                    trip.dropOAd
+                )
             )
-        }
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = "Price + Currency",
-            fontSize = 18.sp,
-            color = Color.Black,
-            fontWeight = FontWeight.W400,
-            style = typography.labelLarge
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                Icons.Outlined.AttachMoney,
-                contentDescription = "Localized description",
-                tint = yassirPurple, modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Price",
+                    fontSize = 18.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    style = typography.labelLarge,
+                    modifier = Modifier
+                        .weight(9f)
+                )
+                Icon(
+                    Icons.Outlined.Info,
+                    contentDescription = "Localized description",
+                    tint = yassirPurple,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = "Payment in cash",
+                text = "Price + Currency",
                 fontSize = 18.sp,
                 color = Color.Black,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.W400,
                 style = typography.labelLarge
             )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Outlined.AttachMoney,
+                    contentDescription = "Localized description",
+                    tint = yassirPurple, modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Payment in cash",
+                    fontSize = 18.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    style = typography.labelLarge
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Box {
+        Box(modifier = Modifier.weight(2f)) {
             Button(
                 onClick = {
                     tripAction(trip._id)

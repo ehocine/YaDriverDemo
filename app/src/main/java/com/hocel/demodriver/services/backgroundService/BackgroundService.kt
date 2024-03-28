@@ -40,6 +40,15 @@ class BackgroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         RepositoryImpl.configureCollections()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannelIfNotExist(
+                channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
+                channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
+                importance = NotificationManager.IMPORTANCE_HIGH
+            )
+        }
         startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
     }
 
@@ -53,25 +62,26 @@ class BackgroundService : Service() {
         scope.launch {
             RepositoryImpl.getUserData().collect { user ->
                 user?.let {
-                    if (user.trRiD.isNotBlank()) {
-                        if (user.curTiD != user.trRiD) {
-                            getUserTrip(user.trRiD)
+                    scope.launch {
+                        if (user.trRiD.isNotBlank()) {
+                            if (user.curTiD != user.trRiD) {
+                                getUserTrip(user.trRiD)
+                            }
                         }
                     }
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val notifManager =
-                    getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                notifManager.createNotificationChannelIfNotExist(
-                    channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
-                    channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
-                    importance = NotificationManager.IMPORTANCE_HIGH
-                )
-            }
-            startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
         }
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannelIfNotExist(
+                channelId = TRACKING_NOTIFICATION_CHANNEL_ID,
+                channelName = Constants.TRACKING_NOTIFICATION_CHANNEL_NAME,
+                importance = NotificationManager.IMPORTANCE_HIGH
+            )
+        }
+        startForeground(Constants.NOTIFICATION_ID, baseNotificationBuilder.build())
         return START_STICKY
     }
 
@@ -84,6 +94,7 @@ class BackgroundService : Service() {
                 }
             }
     }
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun handleTripEvent(trip: Trip, context: Context) {
         when (trip.status) {
@@ -112,5 +123,5 @@ class BackgroundService : Service() {
     }
 }
 
-internal const val NOTIFICATION_CHANNEL_ID = "overlay_notification_channel"
-internal const val NOTIFICATION_CHANNEL_NAME = "Overlay Notification"
+internal const val NOTIFICATION_CHANNEL_ID = "trips_channel"
+internal const val NOTIFICATION_CHANNEL_NAME = "Trip Notification"

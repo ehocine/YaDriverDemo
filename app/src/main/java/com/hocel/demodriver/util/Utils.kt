@@ -8,9 +8,11 @@ import android.app.PendingIntent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -120,6 +122,12 @@ fun NotificationManager.createPushRequestNotification(
 
         this.createNotificationChannel(channel)
     }
+}
+
+fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 fun String.toast(context: Context, length: Int = Toast.LENGTH_SHORT) =

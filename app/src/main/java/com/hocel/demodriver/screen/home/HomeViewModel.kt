@@ -54,10 +54,12 @@ class HomeViewModel @Inject constructor(
         serviceManager.startService()
         startLocationUpdate()
         viewModelScope.launch {
-            delay(300)
+            Log.d("MyUser", "User")
             RepositoryImpl.getUserData()
                 .collect { user ->
+                    Log.d("MyUser", "User $user")
                     user?.let {
+                        Log.d("MyUser", "${it.name}")
                         userData.emit(user)
                         viewModelScope.launch {
                             if (user.trRiD.isNotBlank()) {
@@ -66,7 +68,7 @@ class HomeViewModel @Inject constructor(
                             if (user.curTiD.isNotBlank() && user.curTiD != user.trRiD) {
                                 getUserTrip(user.curTiD)
                             }
-                           // if (user.status == DriverStatus.Online) trackingService.startTracking()
+                            if (user.status == DriverStatus.Online) trackingService.startTracking()
                         }
                     }
                 }
@@ -139,7 +141,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             if (status == DriverStatus.Online) {
                 serviceManager.startService()
-                //trackingService.startTracking()
+                trackingService.startTracking()
             } else {
                 serviceManager.stopService()
                 trackingService.stopTracking()

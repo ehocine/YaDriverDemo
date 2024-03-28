@@ -38,6 +38,7 @@ fun SetupNavGraph(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
 fun NavGraphBuilder.authRoute(
     navigateToHome: () -> Unit,
@@ -50,6 +51,7 @@ fun NavGraphBuilder.authRoute(
         val messageBarState = rememberMessageBarState()
 
         AuthenticationScreen(
+            viewModel = viewModel,
             authenticated = authenticated,
             loadingState = loadingState,
             oneTapState = oneTapState,
