@@ -1,4 +1,4 @@
-package com.stevdza.san.demodriver.ui.theme
+package com.hocel.demodriver.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,24 +1,27 @@
 package com.hocel.demodriver.navigation
 
 import android.os.Build
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.hocel.demodriver.screen.auth.AuthenticationScreen
-import com.hocel.demodriver.screen.auth.AuthenticationViewModel
+import com.hocel.demodriver.screen.login.LoginScreen
+import com.hocel.demodriver.screen.login.LoginViewModel
 import com.hocel.demodriver.screen.home.HomeScreen
 import com.hocel.demodriver.screen.home.HomeViewModel
-import com.stevdzasan.messagebar.rememberMessageBarState
-import com.stevdzasan.onetap.rememberOneTapSignInState
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.stevdza.san.demodriver.navigation.Screen
+import com.hocel.demodriver.screen.signup.SignupScreen
+import com.hocel.demodriver.screen.signup.SignupViewModel
+import com.hocel.demodriver.util.toast
 
-@RequiresApi(Build.VERSION_CODES.O)
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun SetupNavGraph(
     startDestination: String,
@@ -28,10 +31,18 @@ fun SetupNavGraph(
         navController = navController,
         startDestination = startDestination
     ) {
-        authRoute(
+        loginRoute(
             navigateToHome = {
                 navController.popBackStack()
                 navController.navigate(Screen.Home.route)
+            },
+            goToSignup = {
+                navController.navigate(Screen.Signup.route)
+            }
+        )
+        signupRoute(
+            goToLogin = {
+                navController.navigate(Screen.Login.route)
             }
         )
         homeRoute()
@@ -40,45 +51,66 @@ fun SetupNavGraph(
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @OptIn(ExperimentalMaterial3Api::class)
-fun NavGraphBuilder.authRoute(
+fun NavGraphBuilder.loginRoute(
     navigateToHome: () -> Unit,
+    goToSignup: () -> Unit
 ) {
-    composable(route = Screen.Authentication.route) {
-        val viewModel: AuthenticationViewModel = hiltViewModel()
+    composable(route = Screen.Login.route) {
+        val viewModel: LoginViewModel = hiltViewModel()
         val authenticated by viewModel.authenticated
         val loadingState by viewModel.loadingState
-        val oneTapState = rememberOneTapSignInState()
-        val messageBarState = rememberMessageBarState()
-
-        AuthenticationScreen(
-            viewModel = viewModel,
+        val context = LocalContext.current
+        LoginScreen(
             authenticated = authenticated,
             loadingState = loadingState,
-            oneTapState = oneTapState,
-            messageBarState = messageBarState,
-            onButtonClicked = {
-                oneTapState.open()
+            navigateToHome = navigateToHome,
+            onLoginClicked = { email, password ->
                 viewModel.setLoading(true)
-            },
-            onSuccessfulSignIn = { tokenId ->
-                viewModel.signInWithMongoAtlas(
-                    tokenId = tokenId,
+                viewModel.signInEmailPassword(
+                    email = email,
+                    password = password,
                     onSuccess = {
-                        messageBarState.addSuccess("Successfully Authenticated!")
+                        "Successfully Authenticated!".toast(context = context, Toast.LENGTH_SHORT)
                         viewModel.setLoading(false)
                     },
                     onError = {
-                        messageBarState.addError(it)
+                        it.message?.toast(context = context, Toast.LENGTH_SHORT)
                         viewModel.setLoading(false)
-                    }
-                )
+                    })
             },
-            onDialogDismissed = { message ->
-                messageBarState.addError(Exception(message))
-                viewModel.setLoading(false)
-            },
-            navigateToHome = navigateToHome
+            goToSignup = goToSignup
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+fun NavGraphBuilder.signupRoute(
+    goToLogin: () -> Unit
+) {
+    composable(route = Screen.Signup.route) {
+        val viewModel: SignupViewModel = hiltViewModel()
+        val authenticated by viewModel.authenticated
+        val loadingState by viewModel.loadingState
+        val context = LocalContext.current
+
+        SignupScreen(
+            authenticated = authenticated,
+            loadingState = loadingState,
+            navigateToLogin = goToLogin,
+            onSignupClicked = { email, password ->
+                viewModel.setLoading(true)
+                viewModel.registerNewUser(
+                    email = email,
+                    password = password,
+                    onSuccess = {
+                        "Successfully signed up!".toast(context = context, Toast.LENGTH_SHORT)
+                        viewModel.setLoading(false)
+                    }, onError = {
+                        it.message?.toast(context = context, Toast.LENGTH_SHORT)
+                        viewModel.setLoading(false)
+                    })
+            })
     }
 }
 

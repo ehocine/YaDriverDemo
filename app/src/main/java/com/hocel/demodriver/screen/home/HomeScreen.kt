@@ -75,10 +75,9 @@ import com.hocel.demodriver.R
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
-import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.copyToClipboard
-import com.stevdza.san.demodriver.ui.theme.yassirPurple
+import com.hocel.demodriver.ui.theme.yassirPurple
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
@@ -96,8 +95,9 @@ fun HomeScreen(
     var showTripFlowSheet by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
     val trip by viewModel.currentTrip
+
     LaunchedEffect(key1 = trip, key2 = user.status) {
-        showTripFlowSheet = if (user.status == DriverStatus.Online) {
+        showTripFlowSheet = if (user.status != DriverStatus.Offline) {
             if (trip.status == TripStatus.Pending) {
                 true
             } else {
@@ -112,7 +112,7 @@ fun HomeScreen(
         }
     }
 
-    val tripAction by viewModel.tripAction
+    val tripStatus = trip.status
 
     val scope = rememberCoroutineScope()
     val tripFlowSheetState = rememberModalBottomSheetState(
@@ -129,10 +129,10 @@ fun HomeScreen(
                     dragHandle = null
                 ) {
                     SheetContent(
-                        canCloseSheet = tripAction == TripFlowAction.Pending || tripAction == TripFlowAction.Accepted,
+                        canCloseSheet = tripStatus == TripStatus.Pending || tripStatus == TripStatus.Accepted,
                         content = {
-                            when (tripAction) {
-                                TripFlowAction.Pending -> {
+                            when (tripStatus) {
+                                TripStatus.Pending -> {
                                     TripFlowSheet(
                                         trip = trip,
                                         sheetTitle = "New trip request",
@@ -143,7 +143,7 @@ fun HomeScreen(
                                     )
                                 }
 
-                                TripFlowAction.Accepted -> {
+                                TripStatus.Accepted -> {
                                     TripFlowSheet(
                                         trip = trip,
                                         sheetTitle = "Go to your client",
@@ -154,7 +154,7 @@ fun HomeScreen(
                                     )
                                 }
 
-                                TripFlowAction.GoToPickUp -> {
+                                TripStatus.GoToPickUp -> {
                                     TripFlowSheet(
                                         trip = trip,
                                         sheetTitle = "Going to  your client",
@@ -165,7 +165,7 @@ fun HomeScreen(
                                     )
                                 }
 
-                                TripFlowAction.ArrivedToPickUp -> {
+                                TripStatus.ArrivedToPickUp -> {
                                     TripFlowSheet(
                                         trip = trip,
                                         sheetTitle = "Start the trip",
@@ -176,7 +176,7 @@ fun HomeScreen(
                                     )
                                 }
 
-                                TripFlowAction.StartTrip -> {
+                                TripStatus.StartTrip -> {
                                     TripFlowSheet(
                                         trip = trip,
                                         sheetTitle = "You are on trip",
@@ -188,7 +188,7 @@ fun HomeScreen(
                                     )
                                 }
 
-                                TripFlowAction.EndTrip -> {
+                                TripStatus.Finished -> {
                                     TripFlowSheet(
                                         trip = trip,
                                         sheetTitle = "Great work! Trip finished",
@@ -196,16 +196,11 @@ fun HomeScreen(
                                         tripAction = {
                                             viewModel.switchStatus(DriverStatus.Online)
                                             tripFlowAction(trip, user, TripStatus.Closed)
-                                            scope.launch {
-                                                tripFlowSheetState.hide()
-                                                delay(100)
-                                                showTripFlowSheet = false
-                                            }
                                         }
                                     )
                                 }
 
-                                TripFlowAction.Closed -> {
+                                TripStatus.Closed -> {
                                     showTripFlowSheet = false
                                 }
 
@@ -215,7 +210,7 @@ fun HomeScreen(
                             }
                         },
                         onCloseClicked = {
-                            if (tripAction == TripFlowAction.Accepted) tripFlowAction(
+                            if (tripStatus == TripStatus.Accepted) tripFlowAction(
                                 trip, user, TripStatus.Canceled
                             )
                             viewModel.declineTrip()

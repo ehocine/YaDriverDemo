@@ -13,10 +13,14 @@ import io.realm.kotlin.mongodb.App
 import io.realm.kotlin.mongodb.annotations.ExperimentalFlexibleSyncApi
 import io.realm.kotlin.mongodb.ext.subscribe
 import io.realm.kotlin.mongodb.sync.SyncConfiguration
+import io.realm.kotlin.notifications.ResultsChange
 import io.realm.kotlin.types.RealmInstant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -30,12 +34,12 @@ object RepositoryImpl : Repository {
 
 
     fun initialize() {
-        Log.d("User", "$user")
         configureCollections()
-        createDriver()
+//        createDriver()
     }
 
     override fun configureCollections() {
+        Log.d("MyUser", "User check $user")
         if (user != null) {
             val config = SyncConfiguration.Builder(
                 user!!,
@@ -54,8 +58,9 @@ object RepositoryImpl : Repository {
         }
     }
 
-    override fun createDriver() {
+    override fun createDriver(mEmail: String) {
         val driver = Driver().apply {
+            email = mEmail
             status = DriverStatus.Offline
         }
         if (user != null) {
@@ -71,9 +76,15 @@ object RepositoryImpl : Repository {
         }
     }
 
-    override suspend fun getUserData(): Flow<Driver?> {
+    suspend fun getUserData2(): Flow<ResultsChange<Driver>> {
+        val l = realm.query<Driver>(query = "_id == $0", ObjectId(this.user!!.id))
+            .asFlow()
+        return l
+    }
+
+    override fun getUserData(): Flow<ResultsChange<Driver>> {
         return realm.query<Driver>(query = "_id == $0", ObjectId(this.user!!.id))
-            .find().firstOrNull()?.asFlow()?.map { it.obj } ?: flow { null }
+            .find().asFlow()
     }
 
     override suspend fun tripAction(trip: Trip, driver: Driver, action: TripStatus) {

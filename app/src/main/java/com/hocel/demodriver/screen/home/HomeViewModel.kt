@@ -13,13 +13,11 @@ import com.hocel.demodriver.data.RepositoryImpl
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Trip
-import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.services.backgroundService.ServiceManager
 import com.hocel.demodriver.services.tracking.TrackingServiceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -36,11 +34,6 @@ class HomeViewModel @Inject constructor(
 
     var currentTrip = mutableStateOf(Trip())
         private set
-    var currentTripId = mutableStateOf("")
-        private set
-
-    var tripAction = mutableStateOf(TripFlowAction.Idle)
-        private set
     var userData = MutableStateFlow(Driver())
         private set
 
@@ -54,12 +47,9 @@ class HomeViewModel @Inject constructor(
         serviceManager.startService()
         startLocationUpdate()
         viewModelScope.launch {
-            Log.d("MyUser", "User")
-            RepositoryImpl.getUserData()
-                .collect { user ->
-                    Log.d("MyUser", "User $user")
-                    user?.let {
-                        Log.d("MyUser", "${it.name}")
+            RepositoryImpl.getUserData2()
+                .collect { userResult ->
+                    userResult.list.firstOrNull()?.let { user ->
                         userData.emit(user)
                         viewModelScope.launch {
                             if (user.trRiD.isNotBlank()) {
@@ -92,44 +82,43 @@ class HomeViewModel @Inject constructor(
                 Log.d("EventTime", "Event ViewModel: in: ${System.currentTimeMillis()}")
                 if (userData.value.status == DriverStatus.Online) {
                     ringtoneManager.startRinging()
-                    tripAction.value = TripFlowAction.Pending
                 }
             }
 
             TripStatus.Accepted -> {
                 ringtoneManager.stopRinging()
-                tripAction.value = TripFlowAction.Accepted
+//                tripAction.value = TripStatus.Accepted
                 currentTrip.value = trip
 
             }
 
             TripStatus.GoToPickUp -> {
-                tripAction.value = TripFlowAction.GoToPickUp
+//                tripAction.value = TripStatus.GoToPickUp
                 currentTrip.value = trip
             }
 
             TripStatus.ArrivedToPickUp -> {
-                tripAction.value = TripFlowAction.ArrivedToPickUp
+//                tripAction.value = TripStatus.ArrivedToPickUp
                 currentTrip.value = trip
             }
 
             TripStatus.StartTrip -> {
-                tripAction.value = TripFlowAction.StartTrip
+//                tripAction.value = TripStatus.StartTrip
                 currentTrip.value = trip
             }
 
             TripStatus.Finished -> {
-                tripAction.value = TripFlowAction.EndTrip
+//                tripAction.value = TripStatus.Finished
                 currentTrip.value = trip
             }
 
             TripStatus.Closed -> {
-                tripAction.value = TripFlowAction.Closed
+//                tripAction.value = TripFlowAction.Closed
                 currentTrip.value = trip
             }
 
             TripStatus.Canceled -> {
-                tripAction.value = TripFlowAction.CancelTrip
+//                tripAction.value = TripFlowAction.CancelTrip
                 currentTrip.value = trip
             }
 

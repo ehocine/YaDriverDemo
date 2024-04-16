@@ -7,13 +7,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
 import com.hocel.demodriver.model.Trip
-import com.hocel.demodriver.model.TripFlowAction
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants
 import com.hocel.demodriver.util.Constants.TRACKING_NOTIFICATION_CHANNEL_ID
@@ -60,11 +60,12 @@ class BackgroundService : Service() {
     @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         scope.launch {
-            RepositoryImpl.getUserData().collect { user ->
-                user?.let {
+            RepositoryImpl.getUserData2().collect { userResult ->
+                userResult.list.firstOrNull()?.let { user ->
                     scope.launch {
                         if (user.trRiD.isNotBlank()) {
                             if (user.curTiD != user.trRiD) {
+                                Log.d("MyTrip", "Trip: ${user.trRiD}")
                                 getUserTrip(user.trRiD)
                             }
                         }
@@ -110,7 +111,7 @@ class BackgroundService : Service() {
                             application.applicationContext,
                             MainActivity::class.java
                         ).apply {
-                            action = TripFlowAction.Pending.name
+                            action = TripStatus.Pending.name
                             putExtra("trip_id", trip._id.toHexString())
                         }
                     )

@@ -10,8 +10,8 @@ import org.mongodb.kbson.ObjectId
 
 interface Repository {
     fun configureCollections()
-    fun createDriver()
-    suspend fun getUserData(): Flow<Driver?>
+    fun createDriver(mEmail: String)
+     fun getUserData(): Flow<ResultsChange<Driver>>
     suspend fun tripAction(trip: Trip, driver: Driver, action: TripStatus)
     suspend fun switchDriverStatus(driver: Driver, nStatus: DriverStatus)
     suspend fun sendLocation(lat: Double, lng: Double)
