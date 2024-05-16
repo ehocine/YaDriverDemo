@@ -13,7 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
-import com.hocel.demodriver.model.Trip
+import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants
 import com.hocel.demodriver.util.Constants.TRACKING_NOTIFICATION_CHANNEL_ID
@@ -63,10 +63,10 @@ class BackgroundService : Service() {
             RepositoryImpl.getUserData2().collect { userResult ->
                 userResult.list.firstOrNull()?.let { user ->
                     scope.launch {
-                        if (user.trRiD.isNotBlank()) {
-                            if (user.curTiD != user.trRiD) {
-                                Log.d("MyTrip", "Trip: ${user.trRiD}")
-                                getUserTrip(user.trRiD)
+                        if (user.miD.isNotBlank()) {
+                            if (user.curMiD != user.miD) {
+                                Log.d("MyTrip", "Trip: ${user.miD}")
+                                getUserTrip(user.miD)
                             }
                         }
                     }
@@ -88,7 +88,7 @@ class BackgroundService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun getUserTrip(tripId: String) {
-        RepositoryImpl.getTripById(tripId)
+        RepositoryImpl.getMissionById(tripId)
             .collect { trip ->
                 trip?.let {
                     handleTripEvent(it, applicationContext)
@@ -97,7 +97,7 @@ class BackgroundService : Service() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleTripEvent(trip: Trip, context: Context) {
+    private fun handleTripEvent(trip: Task, context: Context) {
         when (trip.status) {
             TripStatus.Pending -> {
                 if (!context.isAppInForeground(context.packageName)) {

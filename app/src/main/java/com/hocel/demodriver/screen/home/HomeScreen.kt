@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -74,7 +75,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.hocel.demodriver.R
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
-import com.hocel.demodriver.model.Trip
+import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.copyToClipboard
 import com.hocel.demodriver.ui.theme.yassirPurple
@@ -89,20 +91,21 @@ import org.mongodb.kbson.ObjectId
 fun HomeScreen(
     viewModel: HomeViewModel,
     onSwitchClicked: (DriverStatus) -> Unit,
-    tripFlowAction: (trip: Trip, driver: Driver, action: TripStatus) -> Unit
+    taskFlowAction: (task: Task, driver: Driver, action: TripStatus) -> Unit
 ) {
     val user by viewModel.userData.collectAsState()
-    var showTripFlowSheet by remember { mutableStateOf(false) }
+    var showMissionFlowSheet by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
-    val trip by viewModel.currentTrip
+    val mission by viewModel.currentMission
+    val currentTask by viewModel.currentTask
 
-    LaunchedEffect(key1 = trip, key2 = user.status) {
-        showTripFlowSheet = if (user.status != DriverStatus.Offline) {
-            if (trip.status == TripStatus.Pending) {
+    LaunchedEffect(key1 = mission, key2 = user.status) {
+        showMissionFlowSheet = if (user.status != DriverStatus.Offline) {
+            if (currentTask.status == TripStatus.Pending) {
                 true
             } else {
-                if (trip.dID == user._id.toHexString()) {
-                    trip.status != TripStatus.Closed || trip.status != TripStatus.Canceled
+                if (currentTask.dID == user._id.toHexString()) {
+                    currentTask.status != TripStatus.Closed || currentTask.status != TripStatus.Canceled
                 } else {
                     false
                 }
@@ -112,7 +115,7 @@ fun HomeScreen(
         }
     }
 
-    val tripStatus = trip.status
+    val tripStatus = currentTask.status
 
     val scope = rememberCoroutineScope()
     val tripFlowSheetState = rememberModalBottomSheetState(
@@ -122,7 +125,7 @@ fun HomeScreen(
 
     Scaffold(
         content = {
-            if (showTripFlowSheet) {
+            if (showMissionFlowSheet) {
                 ModalBottomSheet(
                     sheetState = tripFlowSheetState,
                     onDismissRequest = { },
@@ -133,91 +136,95 @@ fun HomeScreen(
                         content = {
                             when (tripStatus) {
                                 TripStatus.Pending -> {
-                                    TripFlowSheet(
-                                        trip = trip,
+                                    TaskFlowSheet(
+                                        task = currentTask,
                                         sheetTitle = "New trip request",
                                         actionButtonText = "Accept trip",
                                         tripAction = {
-                                            tripFlowAction(trip, user, TripStatus.Accepted)
+                                            taskFlowAction(currentTask, user, TripStatus.Accepted)
                                         }
                                     )
                                 }
 
                                 TripStatus.Accepted -> {
-                                    TripFlowSheet(
-                                        trip = trip,
+                                    TaskFlowSheet(
+                                        task = currentTask,
                                         sheetTitle = "Go to your client",
                                         actionButtonText = "Go to pickup",
                                         tripAction = {
-                                            tripFlowAction(trip, user, TripStatus.GoToPickUp)
+                                            taskFlowAction(currentTask, user, TripStatus.GoToPickUp)
                                         }
                                     )
                                 }
 
                                 TripStatus.GoToPickUp -> {
-                                    TripFlowSheet(
-                                        trip = trip,
+                                    TaskFlowSheet(
+                                        task = currentTask,
                                         sheetTitle = "Going to  your client",
                                         actionButtonText = "Arrived to pickup",
                                         tripAction = {
-                                            tripFlowAction(trip, user, TripStatus.ArrivedToPickUp)
+                                            taskFlowAction(
+                                                currentTask,
+                                                user,
+                                                TripStatus.ArrivedToPickUp
+                                            )
                                         }
                                     )
                                 }
 
                                 TripStatus.ArrivedToPickUp -> {
-                                    TripFlowSheet(
-                                        trip = trip,
+                                    TaskFlowSheet(
+                                        task = currentTask,
                                         sheetTitle = "Start the trip",
                                         actionButtonText = "Start trip",
                                         tripAction = {
-                                            tripFlowAction(trip, user, TripStatus.StartTrip)
+                                            taskFlowAction(currentTask, user, TripStatus.StartTrip)
                                         }
                                     )
                                 }
 
                                 TripStatus.StartTrip -> {
-                                    TripFlowSheet(
-                                        trip = trip,
+                                    TaskFlowSheet(
+                                        task = currentTask,
                                         sheetTitle = "You are on trip",
                                         actionButtonText = "End trip",
                                         tripAction = {
                                             viewModel.switchStatus(DriverStatus.InTrip)
-                                            tripFlowAction(trip, user, TripStatus.Finished)
+                                            taskFlowAction(currentTask, user, TripStatus.Finished)
                                         }
                                     )
                                 }
 
                                 TripStatus.Finished -> {
-                                    TripFlowSheet(
-                                        trip = trip,
+                                    TaskFlowSheet(
+                                        task = currentTask,
                                         sheetTitle = "Great work! Trip finished",
                                         actionButtonText = "Close",
                                         tripAction = {
                                             viewModel.switchStatus(DriverStatus.Online)
-                                            tripFlowAction(trip, user, TripStatus.Closed)
+                                            taskFlowAction(currentTask, user, TripStatus.Closed)
                                         }
                                     )
                                 }
 
                                 TripStatus.Closed -> {
-                                    showTripFlowSheet = false
+                                    showMissionFlowSheet = false
                                 }
 
                                 else -> {
-                                    showTripFlowSheet = false
+                                    showMissionFlowSheet = false
                                 }
                             }
                         },
                         onCloseClicked = {
-                            if (tripStatus == TripStatus.Accepted) tripFlowAction(
-                                trip, user, TripStatus.Canceled
+                            if (tripStatus == TripStatus.Accepted) taskFlowAction(
+                                currentTask, user, TripStatus.Canceled
                             )
                             viewModel.declineTrip()
                             scope.launch {
                                 tripFlowSheetState.hide()
                                 delay(100)
-                                showTripFlowSheet = false
+                                showMissionFlowSheet = false
                             }
                         }
                     )
@@ -593,8 +600,55 @@ private fun ProfileSheet(
 }
 
 @Composable
-fun TripFlowSheet(
-    trip: Trip,
+fun MissionFlowSheet(
+    mission: Mission,
+    sheetTitle: String,
+    taskClicked: (task: Task) -> Unit
+) {
+    Column(Modifier.fillMaxHeight(.5f)) {
+        Column(
+            modifier = Modifier
+                .weight(8f)
+                .padding(horizontal = 8.dp)
+        ) {
+            Text(
+                text = sheetTitle,
+                fontSize = 20.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = mission.m_title,
+                fontSize = 19.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = mission.m_desc,
+                fontSize = 18.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Medium,
+                style = typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            LazyColumn {
+                items(mission.tasks) {
+
+
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TaskFlowSheet(
+    task: Task,
     sheetTitle: String,
     actionButtonText: String,
     tripAction: (tripId: ObjectId) -> Unit
@@ -613,7 +667,7 @@ fun TripFlowSheet(
             )
 
             Text(
-                text = trip.client,
+                text = task.client,
                 fontSize = 19.sp,
                 color = Color.Black,
                 fontWeight = FontWeight.Bold
@@ -628,12 +682,12 @@ fun TripFlowSheet(
                 style = typography.bodyMedium
             )
 
-            BulletedList(
-                listOf(
-                    trip.pickUAd,
-                    trip.dropOAd
-                )
-            )
+//            BulletedList(
+//                listOf(
+//                    task.,
+//                    task.dropOAd
+//                )
+//            )
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -682,7 +736,7 @@ fun TripFlowSheet(
         Box(modifier = Modifier.weight(2f)) {
             Button(
                 onClick = {
-                    tripAction(trip._id)
+                    tripAction(task._id)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

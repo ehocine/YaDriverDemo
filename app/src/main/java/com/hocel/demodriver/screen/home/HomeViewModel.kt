@@ -1,7 +1,6 @@
 package com.hocel.demodriver.screen.home
 
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -12,7 +11,8 @@ import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
-import com.hocel.demodriver.model.Trip
+import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.services.backgroundService.ServiceManager
 import com.hocel.demodriver.services.tracking.TrackingServiceManager
@@ -32,7 +32,8 @@ class HomeViewModel @Inject constructor(
     private val _locationProvider: LocationProviderManager,
 ) : ViewModel() {
 
-    var currentTrip = mutableStateOf(Trip())
+    var currentMission = mutableStateOf(Mission())
+    var currentTask = mutableStateOf(Task())
         private set
     var userData = MutableStateFlow(Driver())
         private set
@@ -52,11 +53,11 @@ class HomeViewModel @Inject constructor(
                     userResult.list.firstOrNull()?.let { user ->
                         userData.emit(user)
                         viewModelScope.launch {
-                            if (user.trRiD.isNotBlank()) {
-                                getUserTrip(user.trRiD)
+                            if (user.miD.isNotBlank()) {
+                                getMissionById(user.miD)
                             }
-                            if (user.curTiD.isNotBlank() && user.curTiD != user.trRiD) {
-                                getUserTrip(user.curTiD)
+                            if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
+                                getMissionById(user.curMiD)
                             }
                             if (user.status == DriverStatus.Online) trackingService.startTracking()
                         }
@@ -65,21 +66,24 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private suspend fun getUserTrip(tripId: String) {
-        RepositoryImpl.getTripById(tripId)
-            .collect { trip ->
-                trip?.let {
-                    currentTrip.value = it
-                    handleTripEvent(it)
+    private suspend fun getMissionById(missionId: String) {
+        RepositoryImpl.getMissionById(missionId)
+            .collect { mission ->
+                mission?.let {
+                    currentMission.value = it
+                    handleMissionEvent(it)
                 }
             }
     }
 
+    fun selectTask(task: Task) {
+
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleTripEvent(trip: Trip) {
-        when (trip.status) {
+    private fun handleMissionEvent(mission: Mission) {
+        when (mission.status) {
             TripStatus.Pending -> {
-                Log.d("EventTime", "Event ViewModel: in: ${System.currentTimeMillis()}")
                 if (userData.value.status == DriverStatus.Online) {
                     ringtoneManager.startRinging()
                 }
@@ -87,39 +91,31 @@ class HomeViewModel @Inject constructor(
 
             TripStatus.Accepted -> {
                 ringtoneManager.stopRinging()
-//                tripAction.value = TripStatus.Accepted
-                currentTrip.value = trip
-
+                currentMission.value = mission
             }
 
             TripStatus.GoToPickUp -> {
-//                tripAction.value = TripStatus.GoToPickUp
-                currentTrip.value = trip
+                currentMission.value = mission
             }
 
             TripStatus.ArrivedToPickUp -> {
-//                tripAction.value = TripStatus.ArrivedToPickUp
-                currentTrip.value = trip
+                currentMission.value = mission
             }
 
             TripStatus.StartTrip -> {
-//                tripAction.value = TripStatus.StartTrip
-                currentTrip.value = trip
+                currentMission.value = mission
             }
 
             TripStatus.Finished -> {
-//                tripAction.value = TripStatus.Finished
-                currentTrip.value = trip
+                currentMission.value = mission
             }
 
             TripStatus.Closed -> {
-//                tripAction.value = TripFlowAction.Closed
-                currentTrip.value = trip
+                currentMission.value = mission
             }
 
             TripStatus.Canceled -> {
-//                tripAction.value = TripFlowAction.CancelTrip
-                currentTrip.value = trip
+                currentMission.value = mission
             }
 
             else -> Unit
@@ -139,9 +135,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun tripAction(trip: Trip, driver: Driver, action: TripStatus) {
+    fun missionAction(task: Task, driver: Driver, action: TripStatus) {
         viewModelScope.launch {
-            RepositoryImpl.tripAction(trip, driver, action)
+            RepositoryImpl.taskAction(task, driver, action)
         }
     }
 

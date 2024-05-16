@@ -18,8 +18,6 @@ import io.realm.kotlin.mongodb.App
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         window.setFlags(

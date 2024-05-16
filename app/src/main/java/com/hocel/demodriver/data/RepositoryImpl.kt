@@ -3,7 +3,8 @@ package com.hocel.demodriver.data
 import android.util.Log
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
-import com.hocel.demodriver.model.Trip
+import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants.APP_ID
 import io.realm.kotlin.Realm
@@ -18,10 +19,6 @@ import io.realm.kotlin.types.RealmInstant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -35,19 +32,18 @@ object RepositoryImpl : Repository {
 
     fun initialize() {
         configureCollections()
-//        createDriver()
     }
 
     override fun configureCollections() {
-        Log.d("MyUser", "User check $user")
         if (user != null) {
             val config = SyncConfiguration.Builder(
                 user!!,
-                setOf(Driver::class, Trip::class)
+                setOf(Driver::class, Task::class)
             )
                 .initialSubscriptions { sub ->
                     add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user!!.id)))
-                    add(query = sub.query<Trip>())
+                    add(query = sub.query<Mission>())
+                    add(query = sub.query<Task>())
                 }
                 .errorHandler { _, error ->
                     Log.e("syncError", "syncError", error)
@@ -76,7 +72,7 @@ object RepositoryImpl : Repository {
         }
     }
 
-    suspend fun getUserData2(): Flow<ResultsChange<Driver>> {
+    fun getUserData2(): Flow<ResultsChange<Driver>> {
         val l = realm.query<Driver>(query = "_id == $0", ObjectId(this.user!!.id))
             .asFlow()
         return l
@@ -87,11 +83,11 @@ object RepositoryImpl : Repository {
             .find().asFlow()
     }
 
-    override suspend fun tripAction(trip: Trip, driver: Driver, action: TripStatus) {
+    override suspend fun taskAction(task: Task, driver: Driver, action: TripStatus) {
         if (user != null) {
             realm.write {
                 try {
-                    findLatest(trip)?.let {
+                    findLatest(task)?.let {
                         it.apply {
                             status = action
                             if (action == TripStatus.Accepted) dID = user!!.id
@@ -100,16 +96,16 @@ object RepositoryImpl : Repository {
                     findLatest(driver)?.let {
                         it.apply {
                             when (action) {
-                                TripStatus.Accepted -> it.curTiD = trip._id.toHexString()
+                                TripStatus.Accepted -> it.curMiD = task._id.toHexString()
                                 TripStatus.Canceled, TripStatus.Closed -> {
-                                    it.curTiD = ""
-                                    it.trRiD = ""
+                                    it.curMiD = ""
+                                    it.miD = ""
                                 }
 
                                 else -> Unit
                             }
-                            if (action == TripStatus.Accepted) it.curTiD =
-                                trip._id.toHexString() else Unit
+                            if (action == TripStatus.Accepted) it.curMiD =
+                                task._id.toHexString() else Unit
                         }
                     }
                 } catch (e: Exception) {
@@ -147,10 +143,9 @@ object RepositoryImpl : Repository {
     }
 
     @OptIn(ExperimentalFlexibleSyncApi::class)
-    override suspend fun getTripById(tripId: String): Flow<Trip?> {
-        Log.d("EventTime", "Event Repo: in: ${System.currentTimeMillis()}")
-        val trip = realm.query<Trip>(query = "_id == $0", ObjectId(tripId))
-            .subscribe("Trip", updateExisting = true).firstOrNull()?.asFlow()?.map { it.obj }
+    override suspend fun getMissionById(missionId: String): Flow<Mission?> {
+        val trip = realm.query<Mission>(query = "_id == $0", ObjectId(missionId))
+            .subscribe("Mission", updateExisting = true).firstOrNull()?.asFlow()?.map { it.obj }
         return trip ?: flowOf(null)
     }
 
