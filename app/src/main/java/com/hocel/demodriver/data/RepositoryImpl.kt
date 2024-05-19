@@ -38,12 +38,12 @@ object RepositoryImpl : Repository {
         if (user != null) {
             val config = SyncConfiguration.Builder(
                 user!!,
-                setOf(Driver::class, Task::class)
+                setOf(Driver::class, Task::class, Mission::class)
             )
                 .initialSubscriptions { sub ->
                     add(query = sub.query<Driver>(query = "_id == $0", ObjectId(user!!.id)))
                     add(query = sub.query<Mission>())
-                    add(query = sub.query<Task>())
+
                 }
                 .errorHandler { _, error ->
                     Log.e("syncError", "syncError", error)
@@ -89,7 +89,7 @@ object RepositoryImpl : Repository {
                 try {
                     findLatest(task)?.let {
                         it.apply {
-                            status = action
+                          //  status = action
                             if (action == TripStatus.Accepted) dID = user!!.id
                         }
                     }

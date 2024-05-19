@@ -2,6 +2,7 @@ package com.hocel.demodriver.screen.home
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,16 +34,19 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     var currentMission = mutableStateOf(Mission())
-    var currentTask = mutableStateOf(Task())
+    var currentTask: MutableState<Task?> = mutableStateOf(null)
         private set
     var userData = MutableStateFlow(Driver())
         private set
 
-    var currentLocation: MutableStateFlow<LatLng> = MutableStateFlow(LatLng(0.0, 0.0))
+    var currentLocation : MutableStateFlow<LatLng> = MutableStateFlow(LatLng(0.0, 0.0))
         private set
 
     private var locationJob: Job? = null
 
+
+    var sheetContentState = mutableStateOf(SheetContentState.MISSION)
+        private set
     init {
         RepositoryImpl.initialize()
         serviceManager.startService()
@@ -71,56 +75,24 @@ class HomeViewModel @Inject constructor(
             .collect { mission ->
                 mission?.let {
                     currentMission.value = it
-                    handleMissionEvent(it)
+                   // handleMissionEvent(it)
                 }
             }
     }
 
     fun selectTask(task: Task) {
-
+        currentTask.value = task
+        sheetContentState.value = SheetContentState.TASK
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleMissionEvent(mission: Mission) {
-        when (mission.status) {
-            TripStatus.Pending -> {
-                if (userData.value.status == DriverStatus.Online) {
-                    ringtoneManager.startRinging()
-                }
-            }
-
-            TripStatus.Accepted -> {
-                ringtoneManager.stopRinging()
-                currentMission.value = mission
-            }
-
-            TripStatus.GoToPickUp -> {
-                currentMission.value = mission
-            }
-
-            TripStatus.ArrivedToPickUp -> {
-                currentMission.value = mission
-            }
-
-            TripStatus.StartTrip -> {
-                currentMission.value = mission
-            }
-
-            TripStatus.Finished -> {
-                currentMission.value = mission
-            }
-
-            TripStatus.Closed -> {
-                currentMission.value = mission
-            }
-
-            TripStatus.Canceled -> {
-                currentMission.value = mission
-            }
-
-            else -> Unit
-        }
+    fun showMissionSheet() {
+        sheetContentState.value = SheetContentState.MISSION
     }
+
+    fun hideSheet() {
+        sheetContentState.value = SheetContentState.NONE
+    }
+//
 
     fun switchStatus(status: DriverStatus) {
         viewModelScope.launch {
@@ -168,3 +140,45 @@ class HomeViewModel @Inject constructor(
         }
     }
 }
+
+//@RequiresApi(Build.VERSION_CODES.O)
+//    private fun handleMissionEvent(mission: Mission) {
+//        when (mission.status) {
+//            TripStatus.Pending -> {
+//                if (userData.value.status == DriverStatus.Online) {
+//                    ringtoneManager.startRinging()
+//                }
+//            }
+//
+//            TripStatus.Accepted -> {
+//                ringtoneManager.stopRinging()
+//                currentMission.value = mission
+//            }
+//
+//            TripStatus.GoToPickUp -> {
+//                currentMission.value = mission
+//            }
+//
+//            TripStatus.ArrivedToPickUp -> {
+//                currentMission.value = mission
+//            }
+//
+//            TripStatus.StartTrip -> {
+//                currentMission.value = mission
+//            }
+//
+//            TripStatus.Finished -> {
+//                currentMission.value = mission
+//            }
+//
+//            TripStatus.Closed -> {
+//                currentMission.value = mission
+//            }
+//
+//            TripStatus.Canceled -> {
+//                currentMission.value = mission
+//            }
+//
+//            else -> Unit
+//        }
+//    }

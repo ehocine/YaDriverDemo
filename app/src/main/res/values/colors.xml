@@ -20,5 +20,6 @@
     <color name="black_500">#80000000</color>
     <color name="black_200">#33000000</color>
     <color name="homeMenuColor">#282828</color>
+    <color name="taskcolor">#7609E1</color>
 
 </resources>

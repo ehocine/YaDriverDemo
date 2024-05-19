@@ -121,7 +121,7 @@ fun NavGraphBuilder.homeRoute() {
         HomeScreen(
             viewModel = viewModel,
             onSwitchClicked = viewModel::switchStatus,
-            taskFlowAction = viewModel::missionAction
+           // taskFlowAction = {  }
         )
     }
 }

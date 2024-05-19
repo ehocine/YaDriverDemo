@@ -88,40 +88,40 @@ class BackgroundService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun getUserTrip(tripId: String) {
-//        RepositoryImpl.getMissionById(tripId)
-//            .collect { trip ->
-//                trip?.let {
-//                    handleTripEvent(it, applicationContext)
-//                }
-//            }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun handleTripEvent(trip: Task, context: Context) {
-        when (trip.status) {
-            TripStatus.Pending -> {
-                if (!context.isAppInForeground(context.packageName)) {
-                    pushRequestNotification(
-                        context = application.applicationContext,
-                        channelId = NOTIFICATION_CHANNEL_ID,
-                        channelName = NOTIFICATION_CHANNEL_NAME,
-                        title = "New trip",
-                        description = "You have a new trip request",
-                        intent = Intent(
-                            application.applicationContext,
-                            MainActivity::class.java
-                        ).apply {
-                            action = TripStatus.Pending.name
-                            putExtra("trip_id", trip._id.toHexString())
-                        }
-                    )
-                    ringtoneManager.startRinging()
+        RepositoryImpl.getMissionById(tripId)
+            .collect { trip ->
+                trip?.let {
+                   // handleTripEvent(it, applicationContext)
                 }
             }
-
-            else -> Unit
-        }
     }
+
+//    @RequiresApi(Build.VERSION_CODES.O)
+//    private fun handleTripEvent(trip: Task, context: Context) {
+//        when (trip.status) {
+//            TripStatus.Pending -> {
+//                if (!context.isAppInForeground(context.packageName)) {
+//                    pushRequestNotification(
+//                        context = application.applicationContext,
+//                        channelId = NOTIFICATION_CHANNEL_ID,
+//                        channelName = NOTIFICATION_CHANNEL_NAME,
+//                        title = "New trip",
+//                        description = "You have a new trip request",
+//                        intent = Intent(
+//                            application.applicationContext,
+//                            MainActivity::class.java
+//                        ).apply {
+//                            action = TripStatus.Pending.name
+//                            putExtra("trip_id", trip._id.toHexString())
+//                        }
+//                    )
+//                    ringtoneManager.startRinging()
+//                }
+//            }
+//
+//            else -> Unit
+//        }
+//    }
 }
 
 internal const val NOTIFICATION_CHANNEL_ID = "trips_channel"

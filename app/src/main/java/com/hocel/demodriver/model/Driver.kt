@@ -1,7 +1,6 @@
 package com.hocel.demodriver.model
 
 import io.realm.kotlin.ext.realmListOf
-import io.realm.kotlin.types.EmbeddedRealmObject
 import io.realm.kotlin.types.RealmInstant
 import io.realm.kotlin.types.RealmList
 import io.realm.kotlin.types.RealmObject
@@ -32,49 +31,3 @@ class Driver : RealmObject {
         }
 }
 
-class Mission : RealmObject {
-    @PrimaryKey
-    var _id: ObjectId = ObjectId()
-    var m_title: String = ""
-    var m_desc: String = ""
-    var tasks: RealmList<Task> = realmListOf()
-    var cr_at: Long = 0L
-    private var state: String = TripStatus.Pending.status
-    var status: TripStatus
-        get() {
-            return try {
-                TripStatus.values().firstOrNull { it.status == state } ?: TripStatus.Pending
-            } catch (e: IllegalArgumentException) {
-                e.printStackTrace()
-                TripStatus.Pending
-            }
-        }
-        set(value) {
-            state = value.status
-        }
-
-}
-
-class Task : EmbeddedRealmObject {
-    @PrimaryKey
-    var _id: ObjectId = ObjectId()
-    var t_name: String = ""
-    var t_desc: String = ""
-    var lat: Long = 0L
-    var long: Long = 0L
-    var dID: String? = null
-    var client: String = ""
-    private var state: String = TripStatus.Pending.status
-    var status: TripStatus
-        get() {
-            return try {
-                TripStatus.values().firstOrNull { it.status == state } ?: TripStatus.Pending
-            } catch (e: IllegalArgumentException) {
-                e.printStackTrace()
-                TripStatus.Pending
-            }
-        }
-        set(value) {
-            state = value.status
-        }
-}
