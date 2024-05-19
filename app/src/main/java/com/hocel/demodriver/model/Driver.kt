@@ -1,6 +1,7 @@
 package com.hocel.demodriver.model
 
 import io.realm.kotlin.ext.realmListOf
+import io.realm.kotlin.types.EmbeddedRealmObject
 import io.realm.kotlin.types.RealmInstant
 import io.realm.kotlin.types.RealmList
 import io.realm.kotlin.types.RealmObject
@@ -54,7 +55,7 @@ class Mission : RealmObject {
 
 }
 
-class Task : RealmObject {
+class Task : EmbeddedRealmObject {
     @PrimaryKey
     var _id: ObjectId = ObjectId()
     var t_name: String = ""

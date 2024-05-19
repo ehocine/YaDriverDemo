@@ -88,12 +88,12 @@ class BackgroundService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun getUserTrip(tripId: String) {
-        RepositoryImpl.getMissionById(tripId)
-            .collect { trip ->
-                trip?.let {
-                    handleTripEvent(it, applicationContext)
-                }
-            }
+//        RepositoryImpl.getMissionById(tripId)
+//            .collect { trip ->
+//                trip?.let {
+//                    handleTripEvent(it, applicationContext)
+//                }
+//            }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
