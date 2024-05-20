@@ -10,16 +10,11 @@ import android.os.IBinder
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import com.hocel.demodriver.MainActivity
 import com.hocel.demodriver.common.RingtoneManager
 import com.hocel.demodriver.data.RepositoryImpl
-import com.hocel.demodriver.model.Task
-import com.hocel.demodriver.model.TripStatus
 import com.hocel.demodriver.util.Constants
 import com.hocel.demodriver.util.Constants.TRACKING_NOTIFICATION_CHANNEL_ID
 import com.hocel.demodriver.util.createNotificationChannelIfNotExist
-import com.hocel.demodriver.util.isAppInForeground
-import com.hocel.demodriver.util.pushRequestNotification
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch

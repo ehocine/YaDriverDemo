@@ -1,5 +1,6 @@
 package com.hocel.demodriver.model
 
+import io.realm.kotlin.ext.backlinks
 import io.realm.kotlin.ext.realmListOf
 import io.realm.kotlin.types.EmbeddedRealmObject
 import io.realm.kotlin.types.RealmInstant
@@ -31,16 +32,16 @@ class Mission : RealmObject {
 
 }
 
-class Task : RealmObject {
-    @PrimaryKey
-    var _id: ObjectId = ObjectId()
+class Task : EmbeddedRealmObject {
+    var t_id: ObjectId = ObjectId()
     var t_name: String = ""
     var t_desc: String = ""
     var lat: Long = 0L
     var long: Long = 0L
     var dID: String? = null
     var client: String = ""
-    private var state: String = TripStatus.Pending.status
+    val mission by backlinks(Mission::tasks)
+    private var state: String = TaskStatus.Pending.status
     var status: TaskStatus
         get() {
             return try {
@@ -53,29 +54,4 @@ class Task : RealmObject {
         set(value) {
             state = value.status
         }
-}
-
-
-fun generateSampleMission(): Mission {
-    val mission = Mission().apply {
-        m_title = "Sample Mission"
-        m_desc = "This is a sample mission with 5 tasks."
-        cr_at = System.currentTimeMillis()
-        status = MissionStatus.Pending
-    }
-
-    val tasks = List(5) { index ->
-        Task().apply {
-            t_name = "Task ${index + 1}"
-            t_desc = "Description for task ${index + 1}"
-            lat = 12345678L + index
-            long = 87654321L + index
-            dID = "dID_${index + 1}"
-            client = "Client ${index + 1}"
-            status = TaskStatus.Pending
-        }
-    }
-
-    mission.tasks.addAll(tasks)
-    return mission
 }

@@ -14,7 +14,7 @@ import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Mission
 import com.hocel.demodriver.model.Task
-import com.hocel.demodriver.model.TripStatus
+import com.hocel.demodriver.model.TaskStatus
 import com.hocel.demodriver.services.backgroundService.ServiceManager
 import com.hocel.demodriver.services.tracking.TrackingServiceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,20 +33,21 @@ class HomeViewModel @Inject constructor(
     private val _locationProvider: LocationProviderManager,
 ) : ViewModel() {
 
-    var currentMission = mutableStateOf(Mission())
+    var currentMission: MutableStateFlow<Mission?> = MutableStateFlow(null)
+        private set
     var currentTask: MutableState<Task?> = mutableStateOf(null)
         private set
     var userData = MutableStateFlow(Driver())
         private set
 
-    var currentLocation : MutableStateFlow<LatLng> = MutableStateFlow(LatLng(0.0, 0.0))
+    var currentLocation: MutableStateFlow<LatLng> = MutableStateFlow(LatLng(0.0, 0.0))
         private set
 
     private var locationJob: Job? = null
 
-
-    var sheetContentState = mutableStateOf(SheetContentState.MISSION)
+    var sheetContentState = mutableStateOf(SheetContentState.NONE)
         private set
+
     init {
         RepositoryImpl.initialize()
         serviceManager.startService()
@@ -58,9 +59,15 @@ class HomeViewModel @Inject constructor(
                         userData.emit(user)
                         viewModelScope.launch {
                             if (user.miD.isNotBlank()) {
+                                if (currentTask.value == null) setSheetContentState(
+                                    SheetContentState.MISSION
+                                )
                                 getMissionById(user.miD)
                             }
                             if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
+                                if (currentTask.value == null) setSheetContentState(
+                                    SheetContentState.MISSION
+                                )
                                 getMissionById(user.curMiD)
                             }
                             if (user.status == DriverStatus.Online) trackingService.startTracking()
@@ -72,27 +79,27 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun getMissionById(missionId: String) {
         RepositoryImpl.getMissionById(missionId)
-            .collect { mission ->
-                mission?.let {
-                    currentMission.value = it
-                   // handleMissionEvent(it)
+            .collect { missionResult ->
+                missionResult.list.firstOrNull()?.let { mission ->
+                    currentMission.emit(mission)
                 }
             }
     }
 
+    fun setSheetContentState(state: SheetContentState) {
+        sheetContentState.value = state
+    }
+
     fun selectTask(task: Task) {
-        currentTask.value = task
-        sheetContentState.value = SheetContentState.TASK
+        viewModelScope.launch {
+            setSheetContentState(SheetContentState.TASK)
+            currentMission.collect { mission ->
+                mission?.let {
+                    currentTask.value = it.tasks.find { it2 -> it2.t_id == task.t_id }
+                }
+            }
+        }
     }
-
-    fun showMissionSheet() {
-        sheetContentState.value = SheetContentState.MISSION
-    }
-
-    fun hideSheet() {
-        sheetContentState.value = SheetContentState.NONE
-    }
-//
 
     fun switchStatus(status: DriverStatus) {
         viewModelScope.launch {
@@ -107,7 +114,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun missionAction(task: Task, driver: Driver, action: TripStatus) {
+    fun taskAction(task: Task, driver: Driver, action: TaskStatus?) {
         viewModelScope.launch {
             RepositoryImpl.taskAction(task, driver, action)
         }

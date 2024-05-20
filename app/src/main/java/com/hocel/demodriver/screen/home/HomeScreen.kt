@@ -2,6 +2,7 @@ package com.hocel.demodriver.screen.home
 
 import android.annotation.SuppressLint
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.GpsFixed
@@ -60,7 +62,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -77,16 +78,12 @@ import com.hocel.demodriver.R
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Mission
-import com.hocel.demodriver.model.MissionStatus
 import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TaskStatus
-import com.hocel.demodriver.model.TripStatus
-import com.hocel.demodriver.model.generateSampleMission
-import com.hocel.demodriver.ui.MissionUI.TaskItem
-import com.hocel.demodriver.util.copyToClipboard
+import com.hocel.demodriver.ui.missionUI.TaskItem
 import com.hocel.demodriver.ui.theme.yassirPurple
+import com.hocel.demodriver.util.copyToClipboard
 import kotlinx.coroutines.launch
-import org.mongodb.kbson.ObjectId
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,21 +95,13 @@ fun HomeScreen(
     //taskFlowAction: (task: Task, driver: Driver, action: MissionStatus) -> Unit
 ) {
     val user by viewModel.userData.collectAsState()
-    var showMissionFlowSheet by remember { mutableStateOf(false) }
     var showProfileSheet by remember { mutableStateOf(false) }
-    var showTaskSheet by remember { mutableStateOf(false) }
 
-
-    val mission by viewModel.currentMission
+    val mission by viewModel.currentMission.collectAsState()
     val currentTask by viewModel.currentTask
     val sheetContentState by viewModel.sheetContentState
 
-
-    val taskStatus = currentTask?.status
-    val missionStatus = mission.status
-
-    val scope = rememberCoroutineScope()
-    val tripFlowSheetState = rememberModalBottomSheetState(
+    val bottomSheetState = rememberModalBottomSheetState(
         confirmValueChange = { false }
     )
     val currentLocation = viewModel.currentLocation.collectAsState()
@@ -121,33 +110,49 @@ fun HomeScreen(
         content = {
             if (sheetContentState != SheetContentState.NONE) {
                 ModalBottomSheet(
-                    sheetState = tripFlowSheetState,
-                    onDismissRequest = {  },
+                    sheetState = bottomSheetState,
+                    onDismissRequest = { },
                     dragHandle = null
                 ) {
                     when (sheetContentState) {
                         SheetContentState.MISSION -> {
-                            MissionFlowSheet(
-                                mission = generateSampleMission(),
-                                sheetTitle = "Mission Details",
-                                taskClicked = { task ->
-                                    viewModel.selectTask(task)
-                                }
-                            )
-                        }
-                        SheetContentState.TASK -> {
-                            currentTask?.let { it1 ->
-                                TaskFlowSheet(
-                                    task = it1,
-                                    sheetTitle = "Task Details",
-                                    actionButtonText = "Start Task"
-                                ) { taskId ->
-                                    // Handle task action
-                                    //taskFlowAction(currentTask, user, MissionStatus.StartMission)
-
-                                }
+                            mission?.let {
+                                MissionFlowSheet(
+                                    mission = it,
+                                    sheetTitle = "Mission Details",
+                                    taskClicked = { task ->
+                                        viewModel.selectTask(task)
+                                    }
+                                )
                             }
                         }
+
+                        SheetContentState.TASK -> {
+                            currentTask?.let { task ->
+                                TaskFlowSheet(
+                                    task = task,
+                                    sheetTitle = "Task Details",
+                                    actionButtonText = when (task.status) {
+                                        TaskStatus.Pending -> "Start Task"
+                                        TaskStatus.StartTask -> "Finish Task"
+                                        TaskStatus.Finished -> "Finished"
+                                    },
+                                    buttonEnabled = task.status != TaskStatus.Finished,
+                                    taskAction = {
+                                        val action = when (task.status) {
+                                            TaskStatus.Pending -> TaskStatus.StartTask
+                                            TaskStatus.StartTask -> TaskStatus.Finished
+                                            TaskStatus.Finished -> null
+                                        }
+                                        viewModel.taskAction(task, user, action)
+                                    },
+                                    onBackClicked = {
+                                        viewModel.setSheetContentState(SheetContentState.MISSION)
+                                    }
+                                )
+                            }
+                        }
+
                         else -> Unit
                     }
                 }
@@ -507,11 +512,15 @@ private fun ProfileSheet(
 
 @Composable
 fun MissionFlowSheet(
-    mission: Mission= generateSampleMission(),
+    mission: Mission,
     sheetTitle: String = "sheetTitle",
     taskClicked: (task: Task) -> Unit
 ) {
-    Column(Modifier.fillMaxHeight()) {
+    Column(
+        Modifier
+            .fillMaxHeight()
+            .padding(16.dp)
+    ) {
         Column(
             modifier = Modifier
                 .weight(8f)
@@ -544,9 +553,8 @@ fun MissionFlowSheet(
 
             LazyColumn {
                 items(mission.tasks) {
-
-                    TaskItem(task = it){
-                        taskClicked(it)
+                    TaskItem(modifier = Modifier.padding(vertical = 10.dp), task = it) { task ->
+                        taskClicked(task)
                     }
                 }
             }
@@ -559,9 +567,19 @@ fun TaskFlowSheet(
     task: Task,
     sheetTitle: String,
     actionButtonText: String,
-    tripAction: (tripId: ObjectId) -> Unit
+    buttonEnabled: Boolean,
+    taskAction: () -> Unit,
+    onBackClicked: () -> Unit
 ) {
-    Column(Modifier.fillMaxHeight(.5f)) {
+    Column(
+        Modifier
+            .fillMaxHeight(.5f)
+            .padding(16.dp)
+    ) {
+        IconButton(onClick = onBackClicked) {
+            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+
+        }
         Column(
             modifier = Modifier
                 .weight(8f)
@@ -573,7 +591,21 @@ fun TaskFlowSheet(
                 color = Color.Black,
                 fontWeight = FontWeight.Bold
             )
-
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                text = task.t_name,
+                fontSize = 19.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(5.dp))
+            Text(
+                text = task.t_desc,
+                fontSize = 19.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(5.dp))
             Text(
                 text = task.client,
                 fontSize = 19.sp,
@@ -581,16 +613,6 @@ fun TaskFlowSheet(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Trajectory",
-                fontSize = 18.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Medium,
-                style = typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "Price",
@@ -637,13 +659,14 @@ fun TaskFlowSheet(
         Box(modifier = Modifier.weight(2f)) {
             Button(
                 onClick = {
-                    tripAction(task._id)
+                    taskAction()
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors().copy(containerColor = yassirPurple),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                enabled = buttonEnabled
             ) {
                 Text(
                     text = actionButtonText,

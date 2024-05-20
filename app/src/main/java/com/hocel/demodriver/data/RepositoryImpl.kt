@@ -4,8 +4,9 @@ import android.util.Log
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.MissionStatus
 import com.hocel.demodriver.model.Task
-import com.hocel.demodriver.model.TripStatus
+import com.hocel.demodriver.model.TaskStatus
 import com.hocel.demodriver.util.Constants.APP_ID
 import io.realm.kotlin.Realm
 import io.realm.kotlin.ext.asFlow
@@ -32,6 +33,7 @@ object RepositoryImpl : Repository {
 
     fun initialize() {
         configureCollections()
+        generateSampleMission()
     }
 
     override fun configureCollections() {
@@ -72,6 +74,40 @@ object RepositoryImpl : Repository {
         }
     }
 
+    fun generateSampleMission() {
+        val mission = Mission().apply {
+            m_title = "Sample Mission"
+            m_desc = "This is a sample mission with 5 tasks."
+            cr_at = System.currentTimeMillis()
+            status = MissionStatus.Pending
+        }
+
+        val tasks = List(5) { index ->
+            Task().apply {
+                t_name = "Task ${index + 1}"
+                t_desc = "Description for task ${index + 1}"
+                lat = 12345678L + index
+                long = 87654321L + index
+                dID = "dID_${index + 1}"
+                client = "Client ${index + 1}"
+                status = TaskStatus.Pending
+            }
+        }
+
+        mission.tasks.addAll(tasks)
+        if (user != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                realm.write {
+                    try {
+                        copyToRealm(mission)
+                    } catch (e: Exception) {
+                        Log.d("MongoRepository", e.message.toString())
+                    }
+                }
+            }
+        }
+    }
+
     fun getUserData2(): Flow<ResultsChange<Driver>> {
         val l = realm.query<Driver>(query = "_id == $0", ObjectId(this.user!!.id))
             .asFlow()
@@ -83,33 +119,30 @@ object RepositoryImpl : Repository {
             .find().asFlow()
     }
 
-    override suspend fun taskAction(task: Task, driver: Driver, action: TripStatus) {
+    override suspend fun taskAction(task: Task, driver: Driver, action: TaskStatus?) {
         if (user != null) {
-            realm.write {
-                try {
-                    findLatest(task)?.let {
-                        it.apply {
-                          //  status = action
-                            if (action == TripStatus.Accepted) dID = user!!.id
-                        }
-                    }
-                    findLatest(driver)?.let {
-                        it.apply {
-                            when (action) {
-                                TripStatus.Accepted -> it.curMiD = task._id.toHexString()
-                                TripStatus.Canceled, TripStatus.Closed -> {
-                                    it.curMiD = ""
-                                    it.miD = ""
-                                }
-
-                                else -> Unit
+            action?.let {
+                realm.write {
+                    try {
+                        findLatest(task)?.let {
+                            it.apply {
+                                status = action
+                                if (action == TaskStatus.StartTask) dID = user!!.id
                             }
-                            if (action == TripStatus.Accepted) it.curMiD =
-                                task._id.toHexString() else Unit
                         }
+                        findLatest(driver)?.let {
+                            it.apply {
+                                when (action) {
+                                    TaskStatus.StartTask -> it.curMiD =
+                                        task.mission._id.toHexString()
+
+                                    else -> Unit
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
             }
         }
@@ -142,12 +175,13 @@ object RepositoryImpl : Repository {
         }
     }
 
-    @OptIn(ExperimentalFlexibleSyncApi::class)
-    override suspend fun getMissionById(missionId: String): Flow<Mission?> {
-        val trip = realm.query<Mission>(query = "_id == $0", ObjectId(missionId))
-            .subscribe("Mission", updateExisting = true).firstOrNull()?.asFlow()?.map { it.obj }
-        return trip ?: flowOf(null)
+    override fun getMissionById(missionId: String): Flow<ResultsChange<Mission>> {
+        return realm.query<Mission>(query = "_id == $0", ObjectId(missionId))
+            .asFlow()
     }
+//    override suspend fun getTask(task: Task): Flow<Task?> {
+//        realm.query<Task>()
+//    }
 
     override suspend fun updateProfileInfo(driver: Driver, nName: String, nEmail: String) {
         if (user != null) {
