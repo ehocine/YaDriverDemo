@@ -2,7 +2,6 @@ package com.hocel.demodriver.screen.home
 
 import android.annotation.SuppressLint
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -99,7 +98,9 @@ fun HomeScreen(
 
     val mission by viewModel.currentMission.collectAsState()
     val currentTask by viewModel.currentTask
-    val sheetContentState by viewModel.sheetContentState
+    val sheetContentState by remember {
+        mutableStateOf(viewModel.sheetContentState)
+    }
 
     val bottomSheetState = rememberModalBottomSheetState(
         confirmValueChange = { false }
@@ -108,13 +109,13 @@ fun HomeScreen(
 
     Scaffold(
         content = {
-            if (sheetContentState != SheetContentState.NONE) {
+            if (sheetContentState.value != SheetContentState.NONE) {
                 ModalBottomSheet(
                     sheetState = bottomSheetState,
                     onDismissRequest = { },
                     dragHandle = null
                 ) {
-                    when (sheetContentState) {
+                    when (sheetContentState.value) {
                         SheetContentState.MISSION -> {
                             mission?.let {
                                 MissionFlowSheet(
@@ -155,6 +156,20 @@ fun HomeScreen(
 
                         else -> Unit
                     }
+                }
+            }
+            if (showProfileSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showProfileSheet = false },
+                    dragHandle = null
+                ) {
+                    ProfileSheet(
+                        driver = user,
+                        updateProfileInfo = { name, email ->
+                            viewModel.updateProfileInfo(user, name, email)
+                            showProfileSheet = false
+                        }
+                    )
                 }
             }
             HomeContent(
@@ -331,7 +346,7 @@ private fun HomeContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = if (driverStatus == DriverStatus.Online) "You are online and ready for trips" else "You are offline, no trip will be received",
+                            text = if (driverStatus == DriverStatus.Online) "Online and ready for missions" else "Offline, no mission will be assigned to you",
                             color = Color.Black
                         )
                         Switch(
@@ -602,15 +617,13 @@ fun TaskFlowSheet(
             Text(
                 text = task.t_desc,
                 fontSize = 19.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
+                color = Color.Black
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(
                 text = task.client,
                 fontSize = 19.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
+                color = Color.Black
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
