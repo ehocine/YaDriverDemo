@@ -52,31 +52,35 @@ class HomeViewModel @Inject constructor(
         RepositoryImpl.initialize()
         serviceManager.startService()
         startLocationUpdate()
+        observeUserData()
+    }
+
+    private fun observeUserData() {
         viewModelScope.launch {
-            RepositoryImpl.getUserData2()
-                .collect { userResult ->
-                    userResult.list.firstOrNull()?.let { user ->
-                        userData.emit(user)
-                        viewModelScope.launch {
-                            if (user.miD.isNotBlank()) {
-                                if (currentTask.value == null) setSheetContentState(
-                                    SheetContentState.MISSION
-                                )
-                                getMissionById(user.miD)
-                            }
-                            if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
-                                if (currentTask.value == null) setSheetContentState(
-                                    SheetContentState.MISSION
-                                )
-                                getMissionById(user.curMiD)
-                            }
-                            if (user.status == DriverStatus.Online) trackingService.startTracking()
-                        }
-                    }
+            RepositoryImpl.getUserData2().collect { userResult ->
+                userResult.list.firstOrNull()?.let { user ->
+                    userData.emit(user)
+                    handleUserData(user)
                 }
+            }
         }
     }
 
+    private suspend fun handleUserData(user: Driver) {
+        if (user.miD.isNotBlank()) {
+            if (currentTask.value == null) setSheetContentState(SheetContentState.MISSION)
+            getMissionById(user.miD)
+        }
+
+        if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
+            if (currentTask.value == null) setSheetContentState(SheetContentState.MISSION)
+            getMissionById(user.curMiD)
+        }
+
+        if (user.status == DriverStatus.Online) {
+            trackingService.startTracking()
+        }
+    }
     private suspend fun getMissionById(missionId: String) {
         RepositoryImpl.getMissionById(missionId)
             .collect { missionResult ->
