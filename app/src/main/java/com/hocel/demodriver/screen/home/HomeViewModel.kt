@@ -63,6 +63,10 @@ class HomeViewModel @Inject constructor(
                                     SheetContentState.MISSION
                                 )
                                 getMissionById(user.miD)
+                            }else{
+                                setSheetContentState(
+                                    SheetContentState.NONE
+                                )
                             }
                             if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
                                 if (currentTask.value == null) setSheetContentState(
