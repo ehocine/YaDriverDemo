@@ -617,15 +617,13 @@ fun TaskFlowSheet(
             Text(
                 text = task.t_desc,
                 fontSize = 19.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
+                color = Color.Black
             )
             Spacer(modifier = Modifier.height(5.dp))
             Text(
                 text = task.client,
                 fontSize = 19.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
+                color = Color.Black
             )
             Spacer(modifier = Modifier.height(16.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -33,7 +33,7 @@ object RepositoryImpl : Repository {
 
     fun initialize() {
         configureCollections()
-        generateSampleMission()
+//        generateSampleMission()
     }
 
     override fun configureCollections() {
