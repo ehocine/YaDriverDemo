@@ -3,6 +3,7 @@ package com.hocel.demodriver.data
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.MissionStatus
 import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TaskStatus
 import io.realm.kotlin.notifications.ResultsChange
@@ -13,6 +14,7 @@ interface Repository {
     fun createDriver(mEmail: String)
     fun getUserData(): Flow<ResultsChange<Driver>>
     suspend fun taskAction(task: Task, driver: Driver, action: TaskStatus?)
+    suspend fun missionAction(driver: Driver, action: MissionStatus?)
     suspend fun switchDriverStatus(driver: Driver, nStatus: DriverStatus)
     suspend fun sendLocation(lat: Double, lng: Double)
     fun getMissionById(missionId: String): Flow<ResultsChange<Mission>>

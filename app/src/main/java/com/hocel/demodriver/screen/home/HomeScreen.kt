@@ -77,6 +77,7 @@ import com.hocel.demodriver.R
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.MissionStatus
 import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TaskStatus
 import com.hocel.demodriver.ui.missionUI.TaskItem
@@ -123,6 +124,10 @@ fun HomeScreen(
                                     sheetTitle = "Mission Details",
                                     taskClicked = { task ->
                                         viewModel.selectTask(task)
+                                    },
+                                    closeMissionSheet = {
+                                        viewModel.missionAction(user, MissionStatus.Finished)
+                                        viewModel.setSheetContentState(SheetContentState.NONE)
                                     }
                                 )
                             }
@@ -529,11 +534,12 @@ private fun ProfileSheet(
 fun MissionFlowSheet(
     mission: Mission,
     sheetTitle: String = "sheetTitle",
-    taskClicked: (task: Task) -> Unit
+    taskClicked: (task: Task) -> Unit,
+    closeMissionSheet: () -> Unit
 ) {
     Column(
         Modifier
-            .fillMaxHeight()
+            .fillMaxHeight(.5f)
             .padding(16.dp)
     ) {
         Column(
@@ -547,7 +553,6 @@ fun MissionFlowSheet(
                 color = Color.Black,
                 fontWeight = FontWeight.Bold
             )
-
             Text(
                 text = mission.m_title,
                 fontSize = 19.sp,
@@ -555,7 +560,6 @@ fun MissionFlowSheet(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(16.dp))
-
             Text(
                 text = mission.m_desc,
                 fontSize = 18.sp,
@@ -565,13 +569,49 @@ fun MissionFlowSheet(
             )
 
             Spacer(modifier = Modifier.height(10.dp))
-
-            LazyColumn {
-                items(mission.tasks) {
-                    TaskItem(modifier = Modifier.padding(vertical = 10.dp), task = it) { task ->
-                        taskClicked(task)
+            when (mission.status) {
+                MissionStatus.Pending -> {
+                    LazyColumn {
+                        items(mission.tasks) {
+                            TaskItem(
+                                modifier = Modifier.padding(vertical = 10.dp),
+                                task = it
+                            ) { task ->
+                                taskClicked(task)
+                            }
+                        }
                     }
                 }
+
+                MissionStatus.Finished -> {
+                    Text(
+                        text = "Congrats! Mission is completed",
+                        fontSize = 18.sp,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Medium,
+                        style = typography.bodyMedium
+                    )
+                }
+
+                else -> Unit
+            }
+        }
+        if (mission.status == MissionStatus.Finished)
+        Box(modifier = Modifier.weight(2f)) {
+            Button(
+                onClick = { closeMissionSheet() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors()
+                    .copy(containerColor = yassirPurple),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text(
+                    text = "Close",
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
             }
         }
     }

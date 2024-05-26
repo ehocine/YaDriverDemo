@@ -9,19 +9,14 @@ import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TaskStatus
 import com.hocel.demodriver.util.Constants.APP_ID
 import io.realm.kotlin.Realm
-import io.realm.kotlin.ext.asFlow
 import io.realm.kotlin.ext.query
 import io.realm.kotlin.mongodb.App
-import io.realm.kotlin.mongodb.annotations.ExperimentalFlexibleSyncApi
-import io.realm.kotlin.mongodb.ext.subscribe
 import io.realm.kotlin.mongodb.sync.SyncConfiguration
 import io.realm.kotlin.notifications.ResultsChange
 import io.realm.kotlin.types.RealmInstant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.mongodb.kbson.ObjectId
 
@@ -135,6 +130,31 @@ object RepositoryImpl : Repository {
                                 when (action) {
                                     TaskStatus.StartTask -> it.curMiD =
                                         task.mission._id.toHexString()
+
+                                    else -> Unit
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        }
+    }
+
+    override suspend fun missionAction(driver: Driver, action: MissionStatus?) {
+        if (user != null) {
+            action?.let {
+                realm.write {
+                    try {
+                        findLatest(driver)?.let {
+                            it.apply {
+                                when (action) {
+                                    MissionStatus.Finished -> {
+                                        it.miD = ""
+                                        it.curMiD = ""
+                                    }
 
                                     else -> Unit
                                 }

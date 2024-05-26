@@ -13,6 +13,7 @@ import com.hocel.demodriver.data.RepositoryImpl
 import com.hocel.demodriver.model.Driver
 import com.hocel.demodriver.model.DriverStatus
 import com.hocel.demodriver.model.Mission
+import com.hocel.demodriver.model.MissionStatus
 import com.hocel.demodriver.model.Task
 import com.hocel.demodriver.model.TaskStatus
 import com.hocel.demodriver.services.backgroundService.ServiceManager
@@ -67,20 +68,20 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun handleUserData(user: Driver) {
-        if (user.miD.isNotBlank()) {
-            if (currentTask.value == null) setSheetContentState(SheetContentState.MISSION)
+        if (user.miD.isNotBlank() && (user.curMiD.isBlank() || user.curMiD != user.miD) && currentTask.value == null) {
+            setSheetContentState(SheetContentState.MISSION)
             getMissionById(user.miD)
         }
-
-        if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
-            if (currentTask.value == null) setSheetContentState(SheetContentState.MISSION)
-            getMissionById(user.curMiD)
-        }
+//        if (user.curMiD.isNotBlank() && user.curMiD != user.miD) {
+//            if (currentTask.value == null) setSheetContentState(SheetContentState.MISSION)
+//            getMissionById(user.curMiD)
+//        }
 
         if (user.status == DriverStatus.Online) {
             trackingService.startTracking()
         }
     }
+
     private suspend fun getMissionById(missionId: String) {
         RepositoryImpl.getMissionById(missionId)
             .collect { missionResult ->
@@ -121,6 +122,12 @@ class HomeViewModel @Inject constructor(
     fun taskAction(task: Task, driver: Driver, action: TaskStatus?) {
         viewModelScope.launch {
             RepositoryImpl.taskAction(task, driver, action)
+        }
+    }
+
+    fun missionAction(driver: Driver, action: MissionStatus?) {
+        viewModelScope.launch {
+            RepositoryImpl.missionAction(driver, action)
         }
     }
 
