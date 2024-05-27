@@ -707,61 +707,6 @@ fun TaskFlowSheet(
     }
 }
 
-@Composable
-fun BulletedList(items: List<String>) {
-    LazyColumn {
-        items(items.size) { index ->
-            val text = items[index]
-            BulletPointRow(text = text, isLastItem = index == items.size - 1)
-        }
-    }
-}
-
-@Composable
-fun BulletPointRow(text: String, isLastItem: Boolean) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        BulletPoint()
-        Spacer(modifier = Modifier.width(10.dp))
-        TextWithPadding(text = text)
-    }
-    if (!isLastItem) {
-        Spacer(modifier = Modifier.height(8.dp))
-    }
-}
-
-@Composable
-fun BulletPoint(colorResId: Color = yassirPurple) {
-    Box(
-        modifier = Modifier
-            .size(8.dp)
-            .background(color = Color.White),
-        contentAlignment = Alignment.Center
-    ) {
-
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawCircle(
-
-                color = colorResId,
-                radius = size.width / 2,
-                center = Offset(x = size.width / 2, y = size.height / 2),
-                style = Stroke(
-                    width = 3.dp.toPx()
-                )
-            )
-        }
-    }
-}
-
-@Composable
-fun TextWithPadding(text: String) {
-    Text(
-        text = text,
-        fontSize = 16.sp,
-        color = Color.Black,
-        style = typography.bodyMedium,
-        modifier = Modifier.padding(vertical = 8.dp)
-    )
-}
 
 
 
