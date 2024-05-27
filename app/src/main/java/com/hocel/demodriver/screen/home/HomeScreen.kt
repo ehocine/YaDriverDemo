@@ -373,31 +373,7 @@ private fun HomeContent(
     }
 }
 
-@Composable
-private fun SheetContent(
-    content: @Composable (() -> Unit),
-    canCloseSheet: Boolean,
-    onCloseClicked: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(10.dp)
-    ) {
-        if (canCloseSheet) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                IconButton(onClick = {
-                    onCloseClicked()
-                }) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close button")
-                }
-            }
-        } else {
-            Spacer(modifier = Modifier.padding(10.dp))
-        }
-        content()
-    }
-}
+
 
 @Composable
 private fun ProfileSheet(
